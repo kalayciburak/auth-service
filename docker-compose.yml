@@ -1,0 +1,15 @@
+version: '3'
+services:
+  auth_db:
+    image: mysql
+    container_name: auth_db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3309:3306"
+    volumes:
+      - auth_db:/data/db
+
+volumes:
+  auth_db:
+    driver: local

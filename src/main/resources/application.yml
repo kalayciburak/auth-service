@@ -1,0 +1,24 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:mysql://localhost:3309/auth_db?createDatabaseIfNotExist=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    secret: ${SECRET_KEY}
+    expiration-ms: ${EXPIRATION_TIME_MS:3600000} # 1 saat
+    refresh-expiration-ms: ${REFRESH_EXPIRATION_TIME_MS:86400000} # 1 gün
