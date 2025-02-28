@@ -10,6 +10,18 @@ services:
     volumes:
       - auth_db:/data/db
 
+  redis:
+    image: redis
+    container_name: token_blacklist
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
+    volumes:
+      - redis-data:/data
+
 volumes:
+  redis-data:
   auth_db:
     driver: local

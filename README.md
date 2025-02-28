@@ -3,6 +3,7 @@
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![MySQL](https://img.shields.io/badge/MySQL-Latest-blue.svg)](https://www.mysql.com/)
+[![Redis](https://img.shields.io/badge/Redis-Enabled-red.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.txt)
 
@@ -16,13 +17,14 @@ kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
 
 - 🔐 **JWT tabanlı kimlik doğrulama**
 - 👥 **Kullanıcı ve rol tabanlı yetkilendirme**
-- 🔄 **Token yenileme mekanizması**
+- 🔄 **Token yenileme ve geçersiz tokenleri Redis ile yönetme (Blacklist)**
 - 🛡️ **Spring Security ile tam entegrasyon**
+- 🚀 **Redis tabanlı token kara liste (blacklist) mekanizması**
 - 📝 **Swagger/OpenAPI dokümantasyonu**
-- 🐳 **Docker desteği**
+- 💪 **Docker desteği**
 - 🎯 **RESTful API mimarisi**
 - ✅ **Girdi doğrulama ve hata yönetimi**
-- 🗃️ **MySQL veritabanı entegrasyonu**
+- 🛃️ **MySQL veritabanı entegrasyonu**
 
 ## Gereksinimler
 
@@ -30,6 +32,7 @@ kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
 - **Docker & Docker Compose**
 - **Maven 3.6+**
 - **MySQL 8.0+**
+- **Redis**
 
 ## Kurulum
 
@@ -48,9 +51,12 @@ kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
    SECRET_KEY=your_jwt_secret_key
    EXPIRATION_TIME_MS=3600000
    REFRESH_EXPIRATION_TIME_MS=86400000
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   REDIS_PASSWORD=your_redis_password
    ```
 
-3. **Docker kullanarak MySQL veritabanını başlatın:**
+3. **Docker kullanarak MySQL ve Redis veritabanlarını başlatın:**
    ```bash
    docker-compose up -d
    ```
@@ -71,20 +77,22 @@ kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
 
 ### Endpointler
 
-- **POST** `/api/v1/auth/register` - Yeni kullanıcı kaydı
-- **POST** `/api/v1/auth/login` - Kullanıcı girişi ve JWT token alma
-- **POST** `/api/v1/auth/refresh` - Token yenileme
-- **POST** `/api/v1/auth/logout` - Kullanıcı çıkışı
+- **POST** `/api/auth/register` - Yeni kullanıcı kaydı
+- **POST** `/api/auth/login` - Kullanıcı girişi ve JWT token alma
+- **POST** `/api/auth/refresh` - Token yenileme
+- **POST** `/api/auth/logout` - Kullanıcı çıkışı ve token kara listeye alma
 
-🔹 **API dokümantasyonu:**
+🛠 **API dokümantasyonu:**
 
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
 
-### Örnek API İsteği
+### Örnek API İstekleri
+
+#### **1️⃣ Giriş Yap & Token Al**
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/auth/login \
+curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "user",
@@ -92,16 +100,12 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   }'
 ```
 
-## Yapılandırma
+#### **2️⃣ Token Kara Listeye Alarak Çıkış Yap**
 
-Uygulama, `application.yml` ve ortam değişkenleri ile esnek bir şekilde yapılandırılabilir.
-
-### Temel Yapılandırma Parametreleri
-
-- `server.port`: **Uygulama portu** (Varsayılan: 8080)
-- `spring.datasource.url`: **Veritabanı bağlantı URL'i**
-- `app.jwt.expiration-ms`: **JWT token geçerlilik süreci**
-- `app.jwt.refresh-expiration-ms`: **Yenileme token geçerlilik süreci**
+```bash
+curl -X POST http://localhost:8080/api/auth/logout \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
 
 ## Katkıda Bulunma
 
@@ -113,7 +117,7 @@ Projeye katkı sağlamak için:
 4. Branch'inizi **push** edin (`git push origin feature/yeni-ozellik`)
 5. Bir **Pull Request** oluşturun
 
-🔹 PR'nızın aşağıdaki şartlara uygun olmasına dikkat edin:
+🛠 PR'nızın aşağıdaki şartlara uygun olmasına dikkat edin:
 
 - Kod stiline uygunluk
 - Dokümantasyon eklenmesi
@@ -121,16 +125,7 @@ Projeye katkı sağlamak için:
 
 ## Lisans
 
-Bu proje **MIT Lisansı** ile lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakabilirsiniz.
-
-## Teşekkürler
-
-- [Spring Boot](https://spring.io/projects/spring-boot)
-- [JSON Web Tokens](https://jwt.io/)
-- [Spring Security](https://spring.io/projects/spring-security)
-- [MySQL](https://www.mysql.com/)
-- [Docker](https://www.docker.com/)
-- [Swagger/OpenAPI](https://swagger.io/)
+Bu proje **MIT Lisansı** ile lisanslanmıştır. Detaylar için [LICENSE](LICENSE.txt) dosyasına bakabilirsiniz.
 
 ## Destek
 

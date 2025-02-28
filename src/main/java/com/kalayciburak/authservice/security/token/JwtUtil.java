@@ -1,4 +1,4 @@
-package com.kalayciburak.authservice.util;
+package com.kalayciburak.authservice.security.token;
 
 import com.kalayciburak.authservice.advice.exception.InvalidJwtException;
 import io.jsonwebtoken.Claims;
@@ -110,6 +110,10 @@ public class JwtUtil {
         return extractRoles(token).stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
+    }
+
+    public Date getExpirationDate(String token) {
+        return getClaims(token).getExpiration();
     }
 
     /**

@@ -41,6 +41,15 @@ public class AuthController {
         return authService.login(request);
     }
 
+    @PostMapping("/logout")
+    @Operation(
+            summary = "Çıkış yap",
+            description = "Token'ı karaliste ekleyerek kullanıcıyı sistemden çıkarır."
+    )
+    public ResponseEntity<String> logout(@RequestParam String token) {
+        return authService.logout(token);
+    }
+
     @PostMapping("/refresh")
     @Operation(
             summary = "Access token yenile",

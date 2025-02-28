@@ -1,9 +1,11 @@
 package com.kalayciburak.authservice.service;
 
+import com.kalayciburak.authservice.advice.exception.TokenBlacklistedException;
 import com.kalayciburak.authservice.advice.exception.TokenTypeMismatchException;
 import com.kalayciburak.authservice.model.dto.request.LoginRequest;
 import com.kalayciburak.authservice.model.dto.response.AuthResponse;
-import com.kalayciburak.authservice.util.JwtUtil;
+import com.kalayciburak.authservice.security.token.JwtUtil;
+import com.kalayciburak.authservice.security.token.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,10 +24,11 @@ import static com.kalayciburak.authservice.constant.JwtConstants.REFRESH_TOKEN_T
 public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final TokenBlacklistService tokenBlacklistService;
     private final CustomUserDetailsService customUserDetailsService;
 
     /**
-     * Kullanıcıyı doğrular ve access/refresh token üretir.
+     * Kullanıcıyı doğrular ve access token üretir.
      *
      * @param request Kullanıcı giriş bilgileri
      * @return AuthResponse DTO'su içinde token bilgileri
@@ -34,6 +37,20 @@ public class AuthService {
         authenticateUser(request.username(), request.password());
 
         return ResponseEntity.ok(generateAuthTokens(request.username()));
+    }
+
+    /**
+     * Kullanıcıyı sistemden çıkarır ve token'ı kara listeye alır.
+     *
+     * @param token Kara listeye alınacak token
+     * @return Başarılı bir şekilde çıkış yapıldı mesajı
+     * @throws TokenBlacklistedException Eğer token kara listede ise
+     */
+    public ResponseEntity<String> logout(String token) {
+        if (tokenBlacklistService.isTokenBlacklisted(token)) throw new TokenBlacklistedException();
+        tokenBlacklistService.addTokenToBlacklist(token, jwtUtil.getExpirationDate(token));
+
+        return ResponseEntity.ok("Başarıyla çıkış yapıldı.");
     }
 
     /**
@@ -78,6 +95,7 @@ public class AuthService {
      * Refresh token'ı doğrular ve token tipi geçerli olup olmadığını kontrol eder.
      *
      * @param refreshToken Kullanıcının gönderdiği refresh token
+     * @throws TokenTypeMismatchException Eğer token tipi geçerli değilse
      */
     private void validateRefreshToken(String refreshToken) {
         jwtUtil.validateToken(refreshToken);
