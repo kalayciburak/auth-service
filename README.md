@@ -4,6 +4,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![MySQL](https://img.shields.io/badge/MySQL-Latest-blue.svg)](https://www.mysql.com/)
 [![Redis](https://img.shields.io/badge/Redis-Enabled-red.svg)](https://redis.io/)
+[![Vault](https://img.shields.io/badge/Vault-Enabled-black.svg)](https://www.vaultproject.io/)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.txt)
 
@@ -20,6 +21,7 @@ kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
 - 🔄 **Token yenileme ve geçersiz tokenleri Redis ile yönetme (Blacklist)**
 - 🛡️ **Spring Security ile tam entegrasyon**
 - 🚀 **Redis tabanlı token kara liste (blacklist) mekanizması**
+- 🔒 **HashiCorp Vault ile güvenli yapılandırma yönetimi**
 - 📝 **Swagger/OpenAPI dokümantasyonu**
 - 💪 **Docker desteği**
 - 🎯 **RESTful API mimarisi**
@@ -33,6 +35,7 @@ kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
 - **Maven 3.6+**
 - **MySQL 8.0+**
 - **Redis**
+- **Vault**
 
 ## Kurulum
 
@@ -54,9 +57,11 @@ kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
    REDIS_HOST=localhost
    REDIS_PORT=6379
    REDIS_PASSWORD=your_redis_password
+   VAULT_URI=http://localhost:8200
+   VAULT_TOKEN=my-root-token
    ```
 
-3. **Docker kullanarak MySQL ve Redis veritabanlarını başlatın:**
+3. **Docker kullanarak MySQL, Redis ve Vault servislerini başlatın:**
    ```bash
    docker-compose up -d
    ```

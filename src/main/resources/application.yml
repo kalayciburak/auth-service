@@ -21,6 +21,17 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:123456}
+  cloud:
+    vault:
+      uri: ${VAULT_URI:http://localhost:8200}
+      token: ${VAULT_TOKEN:my-root-token}
+      kv:
+        enabled: true
+        backend: secret
+        profile-separator: /
+        default-context: auth-service
+  config:
+    import: vault://
 
 app:
   jwt:

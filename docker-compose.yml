@@ -4,24 +4,39 @@ services:
     image: mysql
     container_name: auth_db
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "3309:3306"
     volumes:
       - auth_db:/data/db
 
-  redis:
+  auth_blacklist:
     image: redis
-    container_name: token_blacklist
+    container_name: auth_blacklist
     ports:
       - "6379:6379"
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
     volumes:
-      - redis-data:/data
+      - auth_blacklist-data:/data
+
+  vault:
+    image: vault:1.13.3
+    container_name: auth_vault
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN}
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+      VAULT_DEV_UI: true
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-data:/vault/fil
 
 volumes:
-  redis-data:
+  auth_blacklist-data:
+  vault-data:
   auth_db:
     driver: local
