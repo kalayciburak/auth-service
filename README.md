@@ -5,28 +5,32 @@
 [![MySQL](https://img.shields.io/badge/MySQL-Latest-blue.svg)](https://www.mysql.com/)
 [![Redis](https://img.shields.io/badge/Redis-Enabled-red.svg)](https://redis.io/)
 [![Vault](https://img.shields.io/badge/Vault-Enabled-black.svg)](https://www.vaultproject.io/)
+[![Graylog](https://img.shields.io/badge/Graylog-Enabled-purple.svg)](https://www.graylog.org/)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.txt)
+[![License](https://img.shields.io/badge/License-MIT-white.svg)](LICENSE.txt)
 
 ## Özet
 
-**Auth Service**, modern uygulamalar için güvenli kimlik doğrulama ve yetkilendirme hizmeti sunan, **Spring Boot 3** ile
-geliştirilmiş, ölçeklenebilir bir servistir. JWT tabanlı oturum yönetimi, kullanıcı yetkilendirme ve güvenlik mekanizmalarını
-kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
+**Auth Service**, modern uygulamalar için **güvenli kimlik doğrulama ve yetkilendirme** hizmeti sunan, **Spring Boot 3**
+ile geliştirilmiş, **Common JPA**, **Auditing**, **Graylog merkezi loglama** ve **soft-delete** destekli bir servistir.
+JWT tabanlı oturum yönetimi, kullanıcı yetkilendirme ve güvenlik mekanizmalarını kapsayan bu servis, mikroservis
+mimarilerine kolayca entegre edilebilir.
 
 ## Özellikler
 
 - 🔐 **JWT tabanlı kimlik doğrulama**
 - 👥 **Kullanıcı ve rol tabanlı yetkilendirme**
-- 🔄 **Token yenileme ve geçersiz tokenleri Redis ile yönetme (Blacklist)**
-- 🛡️ **Spring Security ile tam entegrasyon**
-- 🚀 **Redis tabanlı token kara liste (blacklist) mekanizması**
-- 🔒 **HashiCorp Vault ile güvenli yapılandırma yönetimi**
+- 🔄 **Token yenileme ve kara listeye alma (Redis destekli)**
+- 🛡️ **Spring Security ile entegre kimlik ve yetkilendirme yönetimi**
+- 📜 **[Common JPA Package](https://github.com/kalayciburak/common-jpa-package) entegrasyonu**
+- 🛠  **Auditing ile kimlik doğrulama logları tutulur**
+- 📊 **Graylog + Elasticsearch + MongoDB tabanlı merkezi loglama sistemi**
+- 🔒 **HashiCorp Vault ile güvenli konfigürasyon yönetimi**
 - 📝 **Swagger/OpenAPI dokümantasyonu**
 - 💪 **Docker desteği**
-- 🎯 **RESTful API mimarisi**
-- ✅ **Girdi doğrulama ve hata yönetimi**
 - 🛃️ **MySQL veritabanı entegrasyonu**
+- ❌ **Soft-delete mekanizması ile silinmeyen veri yönetimi**
+- ✅ **Merkezi hata yönetimi**
 
 ## Gereksinimler
 
@@ -36,6 +40,8 @@ kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
 - **MySQL 8.0+**
 - **Redis**
 - **Vault**
+- **Graylog**
+- **Common JPA Package**
 
 ## Kurulum
 
@@ -59,9 +65,13 @@ kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
    REDIS_PASSWORD=your_redis_password
    VAULT_URI=http://localhost:8200
    VAULT_TOKEN=my-root-token
+   GRAYLOG_HOST=localhost
+   GRAYLOG_PORT=12201
+   GRAYLOG_PASSWORD_SECRET=your_graylog_password_secret
+   GRAYLOG_ROOT_PASSWORD_SHA2=your_graylog_root_password_sha2
    ```
 
-3. **Docker kullanarak MySQL, Redis ve Vault servislerini başlatın:**
+3. **Docker kullanarak servisleri başlatın:**
    ```bash
    docker-compose up -d
    ```

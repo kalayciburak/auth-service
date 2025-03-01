@@ -6,8 +6,8 @@ import com.kalayciburak.authservice.model.dto.request.LoginRequest;
 import com.kalayciburak.authservice.model.dto.response.AuthResponse;
 import com.kalayciburak.authservice.security.token.JwtUtil;
 import com.kalayciburak.authservice.security.token.TokenBlacklistService;
+import com.kalayciburak.commonpackage.core.response.success.SuccessResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 
 import static com.kalayciburak.authservice.constant.JwtConstants.REFRESH_TOKEN_TYPE;
+import static com.kalayciburak.commonpackage.core.constant.Messages.Auth.*;
+import static com.kalayciburak.commonpackage.core.response.builder.ResponseBuilder.createSuccessResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -33,10 +35,11 @@ public class AuthService {
      * @param request Kullanıcı giriş bilgileri
      * @return AuthResponse DTO'su içinde token bilgileri
      */
-    public ResponseEntity<AuthResponse> login(LoginRequest request) {
+    public SuccessResponse<AuthResponse> login(LoginRequest request) {
         authenticateUser(request.username(), request.password());
+        var response = generateAuthTokens(request.username());
 
-        return ResponseEntity.ok(generateAuthTokens(request.username()));
+        return createSuccessResponse(response, LOGIN_SUCCESS);
     }
 
     /**
@@ -46,11 +49,11 @@ public class AuthService {
      * @return Başarılı bir şekilde çıkış yapıldı mesajı
      * @throws TokenBlacklistedException Eğer token kara listede ise
      */
-    public ResponseEntity<String> logout(String token) {
+    public SuccessResponse<AuthResponse> logout(String token) {
         if (tokenBlacklistService.isTokenBlacklisted(token)) throw new TokenBlacklistedException();
         tokenBlacklistService.addTokenToBlacklist(token, jwtUtil.getExpirationDate(token));
 
-        return ResponseEntity.ok("Başarıyla çıkış yapıldı.");
+        return createSuccessResponse(LOGOUT_SUCCESS);
     }
 
     /**
@@ -59,11 +62,12 @@ public class AuthService {
      * @param refreshToken Kullanıcının mevcut refresh token'ı
      * @return Yeni üretilmiş access ve refresh token'ları içeren AuthResponse
      */
-    public ResponseEntity<AuthResponse> refresh(String refreshToken) {
+    public SuccessResponse<AuthResponse> refresh(String refreshToken) {
         validateRefreshToken(refreshToken);
         var username = jwtUtil.extractUsername(refreshToken);
+        var response = generateAuthTokens(username);
 
-        return ResponseEntity.ok(generateAuthTokens(username));
+        return createSuccessResponse(response, REFRESH_SUCCESS);
     }
 
     /**

@@ -9,8 +9,10 @@ import com.kalayciburak.authservice.model.dto.request.RegisterRequest;
 import com.kalayciburak.authservice.model.dto.response.UserResponse;
 import com.kalayciburak.authservice.model.entity.User;
 import com.kalayciburak.authservice.repository.UserRepository;
+import com.kalayciburak.authservice.security.audit.SecurityAuditorProvider;
 import com.kalayciburak.authservice.service.helper.UserHelper;
 import com.kalayciburak.authservice.service.validator.UserValidator;
+import com.kalayciburak.commonpackage.core.response.success.SuccessResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,9 @@ import java.util.List;
 import java.util.Set;
 
 import static com.kalayciburak.authservice.service.helper.UserHelper.hasAdminRole;
+import static com.kalayciburak.commonpackage.core.constant.Messages.User.*;
+import static com.kalayciburak.commonpackage.core.response.builder.ResponseBuilder.createNotFoundResponse;
+import static com.kalayciburak.commonpackage.core.response.builder.ResponseBuilder.createSuccessResponse;
 
 @Service
 @Transactional
@@ -28,6 +33,7 @@ public class UserService {
     private final UserValidator validator;
     private final RoleService roleService;
     private final UserRepository repository;
+    private final SecurityAuditorProvider auditorProvider;
 
     /**
      * Tüm kullanıcıları getirir.
@@ -35,8 +41,11 @@ public class UserService {
      * @return Kullanıcı listesi
      */
     @Transactional(readOnly = true)
-    public List<UserResponse> getAllUsers() {
-        return repository.findAll().stream().map(UserResponse::from).toList();
+    public SuccessResponse<List<UserResponse>> getAllUsers() {
+        var response = repository.findAll().stream().map(UserResponse::from).toList();
+        if (response.isEmpty()) return createNotFoundResponse(NOT_FOUND);
+
+        return createSuccessResponse(response, LISTED);
     }
 
     /**
@@ -48,10 +57,11 @@ public class UserService {
      * @return Kullanıcı bilgileri
      */
     @Transactional(readOnly = true)
-    public UserResponse getUserByUsername(String username) {
+    public SuccessResponse<UserResponse> getUserByUsername(String username) {
         var user = repository.findByUsername(username).orElseThrow(UserNotFoundException::new);
+        var response = UserResponse.from(user);
 
-        return UserResponse.from(user);
+        return createSuccessResponse(response, FOUND);
     }
 
     /**
@@ -68,14 +78,15 @@ public class UserService {
      * @param request Kullanıcı bilgileri
      * @return Kaydedilen kullanıcı bilgileri
      */
-    public UserResponse registerUser(RegisterRequest request) {
+    public SuccessResponse<UserResponse> registerUser(RegisterRequest request) {
         validator.validateUniqueUsername(request.username());
         validator.validatePasswordDataBreachStatus(request.password());
         var roles = roleService.assignDefaultRoles();
         var user = helper.buildUser(request, roles);
         var newUser = repository.save(user);
+        var response = UserResponse.from(newUser);
 
-        return UserResponse.from(newUser);
+        return createSuccessResponse(response, REGISTER_SUCCESS);
     }
 
     /**
@@ -94,15 +105,16 @@ public class UserService {
      * @return Güncellenmiş kullanıcı bilgileri
      * @throws InvalidRoleIdsException Eğer herhangi bir rol ID'si geçersizse
      */
-    public UserResponse updateUserRoles(Long id, Set<Long> roleIds) {
+    public SuccessResponse<UserResponse> updateUserRoles(Long id, Set<Long> roleIds) {
         var user = findUserById(id);
         var newRoles = roleService.findRolesByIds(roleIds);
-        if (user.getRoles().equals(newRoles)) return UserResponse.from(user);
+        if (user.getRoles().equals(newRoles)) createSuccessResponse(ROLES_NOT_CHANGED);
 
         user.setRoles(newRoles);
         var updatedUser = repository.save(user);
+        var response = UserResponse.from(updatedUser);
 
-        return UserResponse.from(updatedUser);
+        return createSuccessResponse(response, ROLES_UPDATED);
     }
 
     /**
@@ -118,13 +130,14 @@ public class UserService {
      * @param request Parola güncelleme isteği
      * @return Güncellenmiş kullanıcı bilgileri
      */
-    public UserResponse updatePassword(Long id, PasswordRequest request) {
+    public SuccessResponse<UserResponse> updatePassword(Long id, PasswordRequest request) {
         validator.validatePasswordDataBreachStatus(request.password());
         var user = findUserById(id);
         user.setPassword(helper.encodePassword(request.password()));
         var updatedUser = repository.save(user);
+        var response = UserResponse.from(updatedUser);
 
-        return UserResponse.from(updatedUser);
+        return createSuccessResponse(response, PASSWORD_UPDATED);
     }
 
     /**
@@ -141,24 +154,25 @@ public class UserService {
      * @param request Parola değiştirme isteği
      * @return Güncellenmiş kullanıcı bilgileri
      */
-    public UserResponse changePassword(Long id, ChangePasswordRequest request) {
+    public SuccessResponse<UserResponse> changePassword(Long id, ChangePasswordRequest request) {
         var user = findUserById(id);
         validator.validateOldPassword(request, user);
         validator.validatePasswordDataBreachStatus(request.newPassword());
         user.setPassword(helper.encodePassword(request.newPassword()));
         var updatedUser = repository.save(user);
+        var response = UserResponse.from(updatedUser);
 
-        return UserResponse.from(updatedUser);
+        return createSuccessResponse(response, PASSWORD_CHANGED);
     }
 
     /**
-     * Kullanıcıyı siler.
+     * Kullanıcıyı (soft) siler.
      * <p>
      * <ol>
      *     <li>Silinecek kullanıcıyı veritabanından getirir.</li>
      *     <li>Kullanıcının ADMIN rolüne sahip olup olmadığını kontrol eder.</li>
      *     <li>Eğer kullanıcı ADMIN rolüne sahipse, {@link AdminCannotBeDeletedException} fırlatılır.</li>
-     *     <li>Eğer kullanıcı ADMIN değilse, silme işlemi gerçekleştirilir.</li>
+     *     <li>Eğer kullanıcı ADMIN değilse, (soft) silme işlemi gerçekleştirilir.</li>
      * </ol>
      *
      * @param id Silinecek kullanıcının ID'si
@@ -167,7 +181,7 @@ public class UserService {
     public void deleteUser(Long id) {
         var user = findUserById(id);
         if (hasAdminRole(user)) throw new AdminCannotBeDeletedException();
-        repository.deleteById(id);
+        repository.softDeleteById(auditorProvider.getCurrentAuditor(), id);
     }
 
     /**

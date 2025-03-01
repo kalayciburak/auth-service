@@ -2,6 +2,8 @@ package com.kalayciburak.authservice.security.config;
 
 import com.kalayciburak.authservice.constant.PublicEndpoints;
 import com.kalayciburak.authservice.security.filter.JwtAuthenticationFilter;
+import com.kalayciburak.authservice.security.handler.CustomAccessDeniedHandler;
+import com.kalayciburak.authservice.security.handler.JwtAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +26,8 @@ import org.springframework.security.web.authentication.password.HaveIBeenPwnedRe
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
+    private final JwtAuthenticationEntryPoint authenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -32,13 +36,18 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 // Stateless oturum yönetimi
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // Belirli endpoint'lere izin tanımlaması
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PublicEndpoints.ENDPOINTS).permitAll()
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(exception -> {
+                    exception.authenticationEntryPoint(authenticationEntryPoint);
+                    exception.accessDeniedHandler(accessDeniedHandler);
+                })
                 .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable);
+                .httpBasic(AbstractHttpConfigurer::disable)
+                // Anonim kullanıcı otomatik olarak devre dışı bırakılıyor
+                .anonymous(AbstractHttpConfigurer::disable);
 
         // JWT doğrulama filtresini ekle (UsernamePasswordAuthenticationFilter öncesinde)
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

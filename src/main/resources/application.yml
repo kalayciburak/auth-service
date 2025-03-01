@@ -38,3 +38,7 @@ app:
     secret: ${SECRET_KEY}
     expiration-ms: ${EXPIRATION_TIME_MS:3600000} # 1 saat
     refresh-expiration-ms: ${REFRESH_EXPIRATION_TIME_MS:86400000} # 1 gün
+
+graylog:
+  host: ${GRAYLOG_HOST:localhost}
+  port: ${GRAYLOG_PORT:12201}

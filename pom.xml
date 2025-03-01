@@ -31,6 +31,7 @@
         <springdoc.version>2.8.4</springdoc.version>
         <jsonwebtoken.version>0.12.6</jsonwebtoken.version>
         <spring-cloud.version>2024.0.0</spring-cloud.version>
+        <common-jpa-version>0.0.1-SNAPSHOT</common-jpa-version>
     </properties>
     <dependencies>
         <dependency>
@@ -101,6 +102,12 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>${jsonwebtoken.version}</version>
             <scope>runtime</scope>
+        </dependency>
+        <!-- Common JPA Package -->
+        <dependency>
+            <groupId>com.kalayciburak</groupId>
+            <artifactId>common-jpa-package</artifactId>
+            <version>${common-jpa-version}</version>
         </dependency>
     </dependencies>
     <dependencyManagement>

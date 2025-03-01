@@ -1,8 +1,8 @@
 package com.kalayciburak.authservice.controller;
 
 import com.kalayciburak.authservice.model.dto.request.ChangePasswordRequest;
-import com.kalayciburak.authservice.model.dto.response.UserResponse;
 import com.kalayciburak.authservice.service.UserService;
+import com.kalayciburak.commonpackage.core.response.common.Response;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Set;
 
 @RestController
@@ -27,7 +26,7 @@ public class UserController {
             summary = "Tüm kullanıcıları getir",
             description = "Sadece ADMIN rolüne sahip kullanıcılar tarafından çağrılabilir."
     )
-    public List<UserResponse> getAllUsers() {
+    public Response getAllUsers() {
         return service.getAllUsers();
     }
 
@@ -37,7 +36,7 @@ public class UserController {
             summary = "Kullanıcı parolasını değiştir",
             description = "Sadece ADMIN veya kendi parolasını değiştiren kullanıcı tarafından kullanılabilir."
     )
-    public UserResponse changePassword(@PathVariable Long id, @RequestBody @Valid ChangePasswordRequest request) {
+    public Response changePassword(@PathVariable Long id, @RequestBody @Valid ChangePasswordRequest request) {
         return service.changePassword(id, request);
     }
 
@@ -47,7 +46,7 @@ public class UserController {
             summary = "Kullanıcı rollerini güncelle",
             description = "Sadece ADMIN kullanıcılar tarafından çağrılabilir."
     )
-    public UserResponse updateUserRoles(@PathVariable Long id, @RequestBody Set<Long> roleIds) {
+    public Response updateUserRoles(@PathVariable Long id, @RequestBody Set<Long> roleIds) {
         return service.updateUserRoles(id, roleIds);
     }
 

@@ -25,6 +25,6 @@ public class UserAuthorizationHelper {
         var currentUsername = context.getAuthentication().getName();
         var user = service.getUserByUsername(currentUsername);
 
-        return user.id().equals(id);
+        return user.getData().id().equals(id);
     }
 }

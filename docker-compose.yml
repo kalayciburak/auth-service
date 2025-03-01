@@ -35,8 +35,51 @@ services:
     volumes:
       - vault-data:/vault/fil
 
+  # ? Graylog Configuration
+  mongo:
+    image: mongo:5.0.13
+    container_name: graylog_mongo
+    networks:
+      - graylog
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.10.2
+    container_name: graylog_elasticsearch
+    environment:
+      - http.host=0.0.0.0
+      - transport.host=localhost
+      - network.host=0.0.0.0
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - graylog
+
+  graylog:
+    image: graylog/graylog:6.0.4
+    container_name: auth_graylog
+    environment:
+      GRAYLOG_ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      GRAYLOG_HTTP_EXTERNAL_URI: http://127.0.0.1:9000/
+      GRAYLOG_PASSWORD_SECRET: ${GRAYLOG_PASSWORD_SECRET}
+      GRAYLOG_ROOT_PASSWORD_SHA2: ${GRAYLOG_ROOT_PASSWORD_SHA2}
+    networks:
+      - graylog
+    depends_on:
+      - mongo
+      - elasticsearch
+    ports:
+      - "9000:9000"
+      - "12201:12201/udp"
+
 volumes:
   auth_blacklist-data:
   vault-data:
   auth_db:
     driver: local
+
+networks:
+  graylog:
+    driver: bridge
