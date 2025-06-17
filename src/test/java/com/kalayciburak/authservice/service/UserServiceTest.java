@@ -11,6 +11,7 @@ import com.kalayciburak.authservice.repository.UserRepository;
 import com.kalayciburak.authservice.security.audit.SecurityAuditorProvider;
 import com.kalayciburak.authservice.service.helper.UserHelper;
 import com.kalayciburak.authservice.service.validator.UserValidator;
+import java.util.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,8 +19,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -100,8 +99,7 @@ class UserServiceTest {
         // Arrange
         var users = List.of(
                 createUser(1L, "user1", "password1", Set.of(createRole(1L, RoleType.ROLE_USER))),
-                createUser(2L, "user2", "password2", Set.of(createRole(2L, RoleType.ROLE_ADMIN)))
-        );
+                createUser(2L, "user2", "password2", Set.of(createRole(2L, RoleType.ROLE_ADMIN))));
         when(repository.findAll()).thenReturn(users);
 
         // Act
@@ -111,6 +109,7 @@ class UserServiceTest {
         assertNotNull(response, "Yanıt null olmamalıdır.");
         assertNotNull(response.getData(), "Veri null olmamalıdır.");
         assertEquals(2, response.getData().size(), "Kullanıcı sayısı 2 olmalıdır.");
+        assertTrue(response.isSuccess(), "İşlem başarılı olmalıdır.");
 
         // Verify
         verify(repository).findAll();
@@ -131,6 +130,8 @@ class UserServiceTest {
         // Assert
         assertNotNull(response, "Yanıt null olmamalıdır.");
         assertNull(response.getData(), "Veri null olmalıdır.");
+        // createNotFoundResponse'un isSuccess() davranışını kontrol etmek yerine
+        // data'nın null olmasını kontrol ediyoruz
 
         // Verify
         verify(repository).findAll();
@@ -159,6 +160,7 @@ class UserServiceTest {
         assertNotNull(response, "Yanıt null olmamalıdır.");
         assertNotNull(response.getData(), "Kayıt verisi null olmamalıdır.");
         assertEquals("newuser", response.getData().username(), "Kullanıcı adı beklenen değerle eşleşmelidir.");
+        assertTrue(response.isSuccess(), "Kayıt işlemi başarılı olmalıdır.");
 
         // Verify
         verify(repository).save(any(User.class));
@@ -175,8 +177,10 @@ class UserServiceTest {
         var userId = 1L;
         var roleIds = Set.of(1L, 2L);
         var user = createUser(userId, "testuser", "password", new HashSet<>());
+        var newRoles = Set.of(createRole(1L, RoleType.ROLE_USER), createRole(2L, RoleType.ROLE_ADMIN));
 
         when(repository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleService.findRolesByIds(roleIds)).thenReturn(newRoles);
         when(repository.save(any(User.class))).thenReturn(user);
 
         // Act
@@ -185,9 +189,11 @@ class UserServiceTest {
         // Assert
         assertNotNull(response, "Yanıt null olmamalıdır.");
         assertNotNull(response.getData(), "Güncellenen kullanıcı verisi null olmamalıdır.");
+        assertTrue(response.isSuccess(), "Rol güncelleme işlemi başarılı olmalıdır.");
 
         // Verify
         verify(repository).findById(userId);
+        verify(roleService).findRolesByIds(roleIds);
         verify(repository).save(any(User.class));
     }
 
@@ -202,9 +208,11 @@ class UserServiceTest {
         // Arrange
         var userId = 1L;
         var user = createUser(userId, "testuser", "password", Set.of(createRole(1L, RoleType.ROLE_USER)));
+        var currentAuditor = "admin";
 
         when(repository.findById(userId)).thenReturn(Optional.of(user));
-        doNothing().when(repository).softDeleteById(any(), eq(userId));
+        when(auditorProvider.getCurrentAuditor()).thenReturn(currentAuditor);
+        doNothing().when(repository).softDeleteById(currentAuditor, userId);
 
         try (MockedStatic<UserHelper> mockedUserHelper = mockStatic(UserHelper.class)) {
             mockedUserHelper.when(() -> UserHelper.hasAdminRole(any(User.class))).thenReturn(false);
@@ -215,7 +223,8 @@ class UserServiceTest {
             // Verify
             verify(repository).findById(userId);
             mockedUserHelper.verify(() -> UserHelper.hasAdminRole(any(User.class)));
-            verify(repository).softDeleteById(any(), eq(userId));
+            verify(auditorProvider).getCurrentAuditor();
+            verify(repository).softDeleteById(currentAuditor, userId);
         }
     }
 
@@ -284,6 +293,7 @@ class UserServiceTest {
         var request = new ChangePasswordRequest(oldPassword, newPassword);
 
         when(repository.findById(userId)).thenReturn(Optional.of(user));
+        when(helper.encodePassword(newPassword)).thenReturn("encodedNewPassword");
         when(repository.save(any(User.class))).thenReturn(user);
 
         // Act
@@ -292,9 +302,13 @@ class UserServiceTest {
         // Assert
         assertNotNull(response, "Yanıt null olmamalıdır.");
         assertNotNull(response.getData(), "Güncellenen kullanıcı verisi null olmamalıdır.");
+        assertTrue(response.isSuccess(), "Şifre değiştirme işlemi başarılı olmalıdır.");
 
         // Verify
         verify(repository).findById(userId);
+        verify(validator).validateOldPassword(request, user);
+        verify(validator).validatePasswordDataBreachStatus(newPassword);
+        verify(helper).encodePassword(newPassword);
         verify(repository).save(any(User.class));
     }
 }

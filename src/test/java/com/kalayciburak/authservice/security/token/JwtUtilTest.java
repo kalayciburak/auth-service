@@ -1,18 +1,29 @@
 package com.kalayciburak.authservice.security.token;
 
 import com.kalayciburak.authservice.advice.exception.InvalidJwtException;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
-import java.util.List;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static com.kalayciburak.authservice.constant.JwtConstants.ACCESS_TOKEN_TYPE;
 import static com.kalayciburak.authservice.constant.JwtConstants.REFRESH_TOKEN_TYPE;
 import static java.lang.Math.abs;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 /**
  * JwtUtil sınıfının işlevselliğini test eden sınıftır. Bu sınıfta, access ve refresh token üretimi, token içerisindeki
@@ -21,23 +32,41 @@ import static org.junit.jupiter.api.Assertions.*;
  * <p>
  * Her test metodu, JwtUtil metodlarının beklenen davranışı sergilediğini doğrulamayı amaçlar.
  */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class JwtUtilTest {
     private final String username = "testuser";
     private final long jwtExpirationMs = 3600000; // 1 saat
-    private final long refreshExpirationMs = 86400000; // 1 gün
-    private final String secretKey = "testsecretkey12345678901234567890testsecretkey";
     private final List<GrantedAuthority> authorities = List.of(
             new SimpleGrantedAuthority("ROLE_USER"),
-            new SimpleGrantedAuthority("ROLE_ADMIN")
-    );
+            new SimpleGrantedAuthority("ROLE_ADMIN"));
+
+    @Mock
+    private RsaKeyService rsaKeyService;
+
+    @InjectMocks
     private JwtUtil jwtUtil;
 
     /**
      * Testler başlamadan önce gerekli nesneler oluşturulur.
      */
     @BeforeEach
-    void setUp() {
-        jwtUtil = new JwtUtil(secretKey, jwtExpirationMs, refreshExpirationMs);
+    void setUp() throws NoSuchAlgorithmException {
+        // RSA KeyPair oluşturma
+        var keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048);
+        var keyPair = keyPairGenerator.generateKeyPair();
+
+        // Mock davranışları
+        when(rsaKeyService.getPrivateKey()).thenReturn((RSAPrivateKey) keyPair.getPrivate());
+        when(rsaKeyService.getPublicKey()).thenReturn((RSAPublicKey) keyPair.getPublic());
+        when(rsaKeyService.getKeyId()).thenReturn("test-key-id");
+
+        // @Value alanlarını test için ayarlama
+        ReflectionTestUtils.setField(jwtUtil, "jwtExpirationInMs", jwtExpirationMs);
+        // 1 gün
+        long refreshExpirationMs = 86400000;
+        ReflectionTestUtils.setField(jwtUtil, "refreshExpirationDateInMs", refreshExpirationMs);
     }
 
     /**
@@ -104,7 +133,8 @@ class JwtUtilTest {
         var invalidToken = "invalid.token.format";
 
         // Act & Assert
-        assertThrows(InvalidJwtException.class, () -> jwtUtil.validateToken(invalidToken), "Geçersiz formatta token doğrulamada hata fırlatmalıdır.");
+        assertThrows(InvalidJwtException.class, () -> jwtUtil.validateToken(invalidToken),
+                "Geçersiz formatta token doğrulamada hata fırlatmalıdır.");
     }
 
     /**
@@ -115,8 +145,8 @@ class JwtUtilTest {
     @DisplayName("Token doğrulama testi - Süresi dolmuş token")
     void validateExpiredTokenTest() {
         // Arrange - 1 milisaniyelik ömür ile token oluşturulur.
-        var shortLivedJwtUtil = new JwtUtil(secretKey, 1, refreshExpirationMs);
-        var token = shortLivedJwtUtil.generateToken(username, authorities);
+        ReflectionTestUtils.setField(jwtUtil, "jwtExpirationInMs", 1L);
+        var token = jwtUtil.generateToken(username, authorities);
 
         // Tokenin süresinin dolması için beklenir.
         try {
@@ -126,7 +156,8 @@ class JwtUtilTest {
         }
 
         // Act & Assert
-        assertThrows(InvalidJwtException.class, () -> shortLivedJwtUtil.validateToken(token), "Süresi dolmuş token doğrulamada hata fırlatmalıdır.");
+        assertThrows(InvalidJwtException.class, () -> jwtUtil.validateToken(token),
+                "Süresi dolmuş token doğrulamada hata fırlatmalıdır.");
     }
 
     /**
