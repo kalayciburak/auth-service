@@ -4,39 +4,27 @@ import com.kalayciburak.authservice.advice.exception.InvalidJwtException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import java.util.*;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import static com.kalayciburak.authservice.constant.JwtConstants.*;
 import static java.lang.System.currentTimeMillis;
 
 @Component
+@RequiredArgsConstructor
 public class JwtUtil {
-    private final SecretKey key;
-    private final long jwtExpirationInMs;
-    private final long refreshExpirationDateInMs;
+    private final RsaKeyService rsaKeyService;
 
-    /**
-     * JwtUtil sınıfı için gerekli bağımlılıkları enjekte eder.
-     *
-     * @param secret                    Secret key
-     * @param jwtExpirationInMs         JWT token'in geçerlilik süresi
-     * @param refreshExpirationDateInMs Refresh token'in geçerlilik süresi
-     */
-    public JwtUtil(@Value("${app.jwt.secret}") String secret,
-                   @Value("${app.jwt.expiration-ms}") long jwtExpirationInMs,
-                   @Value("${app.jwt.refresh-expiration-ms}") long refreshExpirationDateInMs) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
-        this.jwtExpirationInMs = jwtExpirationInMs;
-        this.refreshExpirationDateInMs = refreshExpirationDateInMs;
-    }
+    @Value("${app.jwt.expiration-ms}")
+    private long jwtExpirationInMs;
+
+    @Value("${app.jwt.refresh-expiration-ms}")
+    private long refreshExpirationDateInMs;
 
     /**
      * Kullanıcının yetkilerine göre access token oluşturur.
@@ -47,8 +35,19 @@ public class JwtUtil {
      */
     public String generateToken(String username, Collection<? extends GrantedAuthority> authorities) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put(ROLES_CLAIM, authorities.stream().map(GrantedAuthority::getAuthority).toList());
+
+        // Standard claims
         claims.put(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE);
+        claims.put(SCOPE_CLAIM, "read write");
+
+        // Roles - Keycloak compatible format
+        var roles = authorities.stream().map(GrantedAuthority::getAuthority).toList();
+        claims.put(ROLES_CLAIM, roles);
+
+        // Realm access format (Keycloak compatible)
+        Map<String, Object> realmAccess = new HashMap<>();
+        realmAccess.put(ROLES_CLAIM, roles);
+        claims.put(REALM_ACCESS_CLAIM, realmAccess);
 
         return buildToken(username, claims, jwtExpirationInMs);
     }
@@ -74,7 +73,7 @@ public class JwtUtil {
      */
     public void validateToken(String token) {
         try {
-            Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
+            Jwts.parser().verifyWith(rsaKeyService.getPublicKey()).build().parseSignedClaims(token);
         } catch (JwtException | IllegalArgumentException ex) {
             throw new InvalidJwtException(ex);
         }
@@ -107,9 +106,7 @@ public class JwtUtil {
      * @return Kullanıcının yetkileri
      */
     public Collection<SimpleGrantedAuthority> getAuthorities(String token) {
-        return extractRoles(token).stream()
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());
+        return extractRoles(token).stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
     }
 
     public Date getExpirationDate(String token) {
@@ -129,11 +126,16 @@ public class JwtUtil {
         var expiration = new Date(currentTimeMillis() + expirationTimeInMs);
 
         return Jwts.builder()
+                .header()
+                .keyId(rsaKeyService.getKeyId())
+                .and()
                 .claims(claims)
                 .subject(username)
+                .issuer(ISSUER)
+                .audience().add(AUDIENCE).and()
                 .issuedAt(issuedAt)
                 .expiration(expiration)
-                .signWith(key)
+                .signWith(rsaKeyService.getPrivateKey())
                 .compact();
     }
 
@@ -157,6 +159,10 @@ public class JwtUtil {
      * @return Claim'lerin bulunduğu nesne
      */
     private Claims getClaims(String token) {
-        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+        return Jwts.parser()
+                .verifyWith(rsaKeyService.getPublicKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

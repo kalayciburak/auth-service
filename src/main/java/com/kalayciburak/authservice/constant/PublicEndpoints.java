@@ -13,7 +13,9 @@ public final class PublicEndpoints {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/api/auth/**",
+            "/.well-known/jwks.json",
     };
 
-    private PublicEndpoints() {}
+    private PublicEndpoints() {
+    }
 }
