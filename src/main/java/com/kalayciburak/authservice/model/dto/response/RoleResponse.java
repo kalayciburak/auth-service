@@ -1,7 +1,6 @@
 package com.kalayciburak.authservice.model.dto.response;
 
 import com.kalayciburak.authservice.model.entity.Role;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 

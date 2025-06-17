@@ -1,15 +1,13 @@
 package com.kalayciburak.authservice.model.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
-
 import java.math.BigInteger;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
+import lombok.Builder;
 
 /**
- * JWK (JSON Web Key) formatında RSA public key bilgilerini temsil eden response
- * sınıfı.
+ * JWK (JSON Web Key) formatında RSA public key bilgilerini temsil eden response sınıfı.
  * <p>
  * RFC 7517 standardına uygun olarak JWK formatında key bilgilerini sunar.
  */

@@ -11,9 +11,11 @@
 
 ## Özet
 
-**Auth Service**, modern mikroservis mimarileri için **güvenli kimlik doğrulama ve yetkilendirme** hizmeti sunan, **Spring Boot 3**
+**Auth Service**, modern mikroservis mimarileri için **güvenli kimlik doğrulama ve yetkilendirme** hizmeti sunan, **Spring
+Boot 3**
 ile geliştirilmiş, **Common JPA**, **Auditing**, **Graylog merkezi loglama** ve **soft-delete** destekli bir servistir.
-**RS256 RSA imzalı JWT** tabanlı oturum yönetimi, kullanıcı yetkilendirme, **JWK (JSON Web Key)** desteği ve güvenlik mekanizmalarını kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
+**RS256 RSA imzalı JWT** tabanlı oturum yönetimi, kullanıcı yetkilendirme, **JWK (JSON Web Key)** desteği ve güvenlik
+mekanizmalarını kapsayan bu servis, mikroservis mimarilerine kolayca entegre edilebilir.
 
 ## Özellikler
 

@@ -76,8 +76,7 @@ public class SecurityConfig {
     /**
      * Parola şifreleme algoritması tanımı.
      *
-     * @return {@link PasswordEncoder} deafult olarak {@link BCryptPasswordEncoder}
-     *         döner.
+     * @return {@link PasswordEncoder} deafult olarak {@link BCryptPasswordEncoder} döner.
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -85,8 +84,7 @@ public class SecurityConfig {
     }
 
     /**
-     * Parola sızdırılmışlık kontrolü için HaveIBeenPwned API'sini kullanan bir bean
-     * tanımı.
+     * Parola sızdırılmışlık kontrolü için HaveIBeenPwned API'sini kullanan bir bean tanımı.
      *
      * @return {@link HaveIBeenPwnedRestApiPasswordChecker}
      */
@@ -98,8 +96,7 @@ public class SecurityConfig {
     /**
      * RSA public key ile JWT token'larını doğrulayan JwtDecoder bean'i.
      * <p>
-     * Bu bean, diğer microservislerin bu auth-service'in ürettiği JWT token'larını
-     * doğrulaması için gereklidir.
+     * Bu bean, diğer microservislerin bu auth-service'in ürettiği JWT token'larını doğrulaması için gereklidir.
      *
      * @return RSA public key ile yapılandırılmış {@link JwtDecoder}
      */

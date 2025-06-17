@@ -3,8 +3,7 @@ package com.kalayciburak.authservice.model.dto.response;
 import java.util.List;
 
 /**
- * JWKSet (JSON Web Key Set) formatında key listesini temsil eden response
- * sınıfı.
+ * JWKSet (JSON Web Key Set) formatında key listesini temsil eden response sınıfı.
  * <p>
  * RFC 7517 standardına uygun olarak JWK setini sunar.
  */

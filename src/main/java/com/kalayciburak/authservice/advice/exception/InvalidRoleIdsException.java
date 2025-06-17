@@ -1,9 +1,8 @@
 package com.kalayciburak.authservice.advice.exception;
 
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
-
-import java.util.Set;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InvalidRoleIdsException extends RuntimeException {

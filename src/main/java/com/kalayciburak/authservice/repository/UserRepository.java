@@ -2,9 +2,8 @@ package com.kalayciburak.authservice.repository;
 
 import com.kalayciburak.authservice.model.entity.User;
 import com.kalayciburak.commonjpa.repository.BaseRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserRepository extends BaseRepository<User, Long> {

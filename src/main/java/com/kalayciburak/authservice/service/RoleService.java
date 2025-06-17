@@ -6,16 +6,15 @@ import com.kalayciburak.authservice.model.entity.Role;
 import com.kalayciburak.authservice.model.enums.RoleType;
 import com.kalayciburak.authservice.repository.RoleRepository;
 import jakarta.annotation.PostConstruct;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.kalayciburak.authservice.model.enums.RoleType.ROLE_USER;
 

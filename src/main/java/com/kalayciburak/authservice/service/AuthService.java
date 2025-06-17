@@ -7,14 +7,13 @@ import com.kalayciburak.authservice.model.dto.response.AuthResponse;
 import com.kalayciburak.authservice.security.token.JwtUtil;
 import com.kalayciburak.authservice.security.token.TokenBlacklistService;
 import com.kalayciburak.commonpackage.core.response.success.SuccessResponse;
+import java.util.Collection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Collection;
 
 import static com.kalayciburak.authservice.constant.JwtConstants.REFRESH_TOKEN_TYPE;
 import static com.kalayciburak.commonpackage.core.constant.Messages.Auth.*;

@@ -2,11 +2,10 @@ package com.kalayciburak.authservice.model.entity;
 
 import com.kalayciburak.commonjpa.model.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLRestriction;
-
 import java.util.HashSet;
 import java.util.Set;
+import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Getter
