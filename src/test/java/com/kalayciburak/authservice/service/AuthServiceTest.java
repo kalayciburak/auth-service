@@ -5,6 +5,8 @@ import com.kalayciburak.authservice.advice.exception.TokenTypeMismatchException;
 import com.kalayciburak.authservice.model.dto.request.LoginRequest;
 import com.kalayciburak.authservice.security.token.JwtUtil;
 import com.kalayciburak.authservice.security.token.TokenBlacklistService;
+import java.util.Date;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,9 +20,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.Date;
-import java.util.List;
 
 import static com.kalayciburak.authservice.constant.JwtConstants.REFRESH_TOKEN_TYPE;
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,6 +60,7 @@ class AuthServiceTest {
      */
     @BeforeEach
     void setUp() {
+        userDetails = new User(username, password, authorities);
     }
 
     /**
@@ -70,11 +70,10 @@ class AuthServiceTest {
     @Test
     @DisplayName("Başarılı giriş testi")
     void loginSuccessTest() {
-        userDetails = new User(username, password, authorities);
-        when(customUserDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
         // Arrange: Login isteği oluşturulur.
         var request = new LoginRequest(username, password);
 
+        when(customUserDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
         when(jwtUtil.generateToken(eq(username), anyCollection())).thenReturn(accessToken);
         when(jwtUtil.generateRefreshToken(username)).thenReturn(refreshToken);
 
@@ -86,6 +85,7 @@ class AuthServiceTest {
         assertNotNull(response.getData(), "AuthResponse verisi null olmamalıdır.");
         assertEquals(accessToken, response.getData().token(), "Access token beklenen değerle eşleşmelidir.");
         assertEquals(refreshToken, response.getData().refreshToken(), "Refresh token beklenen değerle eşleşmelidir.");
+        assertTrue(response.isSuccess(), "Giriş işlemi başarılı olmalıdır.");
 
         // Verify: İlgili metod çağrıları doğrulanır.
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
@@ -112,8 +112,10 @@ class AuthServiceTest {
 
         // Assert: Çıkış yanıtının null olmadığı kontrol edilir.
         assertNotNull(response, "Çıkış yanıtı null olmamalıdır.");
+        assertTrue(response.isSuccess(), "Çıkış işlemi başarılı olmalıdır.");
 
-        // Verify: Kara liste kontrolü ve token son kullanma tarihi işlemleri doğrulanır.
+        // Verify: Kara liste kontrolü ve token son kullanma tarihi işlemleri
+        // doğrulanır.
         verify(tokenBlacklistService).isTokenBlacklisted(accessToken);
         verify(tokenBlacklistService).addTokenToBlacklist(accessToken, expirationDate);
         verify(jwtUtil).getExpirationDate(accessToken);
@@ -128,7 +130,8 @@ class AuthServiceTest {
         // Arrange: Token'ın kara listede olduğu durumu simüle edilir.
         when(tokenBlacklistService.isTokenBlacklisted(accessToken)).thenReturn(true);
 
-        // Act & Assert: Kara listedeki token ile çıkış yapılmaya çalışıldığında exception fırlatılması beklenir.
+        // Act & Assert: Kara listedeki token ile çıkış yapılmaya çalışıldığında
+        // exception fırlatılması beklenir.
         assertThrows(TokenBlacklistedException.class, () -> authService.logout(accessToken),
                 "Kara listede olan token ile çıkış yapılmaya çalışıldığında TokenBlacklistedException fırlatılmalıdır.");
 
@@ -145,11 +148,10 @@ class AuthServiceTest {
     @Test
     @DisplayName("Geçerli refresh token ile token yenileme testi")
     void refreshTokenSuccessTest() {
-        userDetails = new User(username, password, authorities);
-        when(customUserDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
         // Arrange: Yeni refresh token üretilmesi senaryosu.
         var newRefreshToken = "new.refresh.token.789";
 
+        when(customUserDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
         doNothing().when(jwtUtil).validateToken(refreshToken);
         when(jwtUtil.getTokenType(refreshToken)).thenReturn(REFRESH_TOKEN_TYPE);
         when(jwtUtil.extractUsername(refreshToken)).thenReturn(username);
@@ -163,7 +165,9 @@ class AuthServiceTest {
         assertNotNull(response, "Token yenileme yanıtı null olmamalıdır.");
         assertNotNull(response.getData(), "AuthResponse verisi null olmamalıdır.");
         assertEquals(accessToken, response.getData().token(), "Yeni access token beklenen değerle eşleşmelidir.");
-        assertEquals(newRefreshToken, response.getData().refreshToken(), "Yeni refresh token beklenen değerle eşleşmelidir.");
+        assertEquals(newRefreshToken, response.getData().refreshToken(),
+                "Yeni refresh token beklenen değerle eşleşmelidir.");
+        assertTrue(response.isSuccess(), "Token yenileme işlemi başarılı olmalıdır.");
 
         // Verify: İlgili metod çağrıları doğrulanır.
         verify(jwtUtil).validateToken(refreshToken);
@@ -185,11 +189,13 @@ class AuthServiceTest {
         doNothing().when(jwtUtil).validateToken(refreshToken);
         when(jwtUtil.getTokenType(refreshToken)).thenReturn("access"); // Yanlış token tipi
 
-        // Act & Assert: Yanlış token tipi ile token yenileme denendiğinde exception fırlatılması beklenir.
+        // Act & Assert: Yanlış token tipi ile token yenileme denendiğinde exception
+        // fırlatılması beklenir.
         assertThrows(TokenTypeMismatchException.class, () -> authService.refresh(refreshToken),
                 "Yanlış token tipi ile yenileme işlemi yapıldığında TokenTypeMismatchException fırlatılmalıdır.");
 
-        // Verify: Sadece validateToken ve getTokenType metodlarının çağrıldığı kontrol edilir.
+        // Verify: Sadece validateToken ve getTokenType metodlarının çağrıldığı kontrol
+        // edilir.
         verify(jwtUtil).validateToken(refreshToken);
         verify(jwtUtil).getTokenType(refreshToken);
         verifyNoMoreInteractions(jwtUtil);

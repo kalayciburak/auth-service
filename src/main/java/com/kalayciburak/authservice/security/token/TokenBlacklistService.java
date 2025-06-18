@@ -1,10 +1,9 @@
 package com.kalayciburak.authservice.security.token;
 
+import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.Date;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 

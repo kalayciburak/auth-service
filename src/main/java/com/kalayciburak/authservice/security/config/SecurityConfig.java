@@ -4,6 +4,7 @@ import com.kalayciburak.authservice.constant.PublicEndpoints;
 import com.kalayciburak.authservice.security.filter.JwtAuthenticationFilter;
 import com.kalayciburak.authservice.security.handler.CustomAccessDeniedHandler;
 import com.kalayciburak.authservice.security.handler.JwtAuthenticationEntryPoint;
+import com.kalayciburak.authservice.security.token.RsaKeyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +18,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.password.HaveIBeenPwnedRestApiPasswordChecker;
@@ -28,6 +31,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final JwtAuthenticationEntryPoint authenticationEntryPoint;
+    private final RsaKeyService rsaKeyService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -38,8 +42,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PublicEndpoints.ENDPOINTS).permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .exceptionHandling(exception -> {
                     exception.authenticationEntryPoint(authenticationEntryPoint);
                     exception.accessDeniedHandler(accessDeniedHandler);
@@ -49,7 +52,8 @@ public class SecurityConfig {
                 // Anonim kullanıcı otomatik olarak devre dışı bırakılıyor
                 .anonymous(AbstractHttpConfigurer::disable);
 
-        // JWT doğrulama filtresini ekle (UsernamePasswordAuthenticationFilter öncesinde)
+        // JWT doğrulama filtresini ekle (UsernamePasswordAuthenticationFilter
+        // öncesinde)
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -87,5 +91,17 @@ public class SecurityConfig {
     @Bean
     public CompromisedPasswordChecker compromisedPasswordChecker() {
         return new HaveIBeenPwnedRestApiPasswordChecker();
+    }
+
+    /**
+     * RSA public key ile JWT token'larını doğrulayan JwtDecoder bean'i.
+     * <p>
+     * Bu bean, diğer microservislerin bu auth-service'in ürettiği JWT token'larını doğrulaması için gereklidir.
+     *
+     * @return RSA public key ile yapılandırılmış {@link JwtDecoder}
+     */
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        return NimbusJwtDecoder.withPublicKey(rsaKeyService.getPublicKey()).build();
     }
 }

@@ -1,7 +1,6 @@
 package com.kalayciburak.authservice.model.dto.response;
 
 import com.kalayciburak.authservice.model.entity.User;
-
 import java.util.Set;
 
 public record UserResponse(

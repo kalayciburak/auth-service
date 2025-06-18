@@ -4,11 +4,10 @@ import com.kalayciburak.authservice.model.dto.request.RegisterRequest;
 import com.kalayciburak.authservice.model.entity.Role;
 import com.kalayciburak.authservice.model.entity.User;
 import com.kalayciburak.authservice.model.enums.RoleType;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-
-import java.util.Set;
 
 /**
  * Kullanıcı ile ilgili yardımcı metotları içeren sınıf.

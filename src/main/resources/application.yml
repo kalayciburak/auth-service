@@ -35,9 +35,11 @@ spring:
 
 app:
   jwt:
-    secret: ${SECRET_KEY}
     expiration-ms: ${EXPIRATION_TIME_MS:3600000} # 1 saat
     refresh-expiration-ms: ${REFRESH_EXPIRATION_TIME_MS:86400000} # 1 gün
+    rsa:
+      private-key: ${rsa-private-key:#{null}}
+      public-key: ${rsa-public-key:#{null}}
 
 graylog:
   host: ${GRAYLOG_HOST:localhost}
