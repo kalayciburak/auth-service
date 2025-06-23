@@ -22,7 +22,7 @@ mekanizmalarını kapsayan bu servis, mikroservis mimarilerine kolayca entegre e
 - 🔐 **RS256 RSA algoritması ile imzalanmış JWT tabanlı kimlik doğrulama**
 - 🔑 **JWK (JSON Web Key) endpoint'leri - RFC 7517 standardına uygun**
 - 🌐 **Mikroservis entegrasyonu için `.well-known/jwks.json` desteği**
-- 👥 **Kullanıcı ve rol tabanlı yetkilendirme**
+- 👥 **Üyelik bazlı rol sistemi (FREE, PREMIUM, GUEST, ADMIN, MODERATOR)**
 - 🔄 **Token yenileme ve kara listeye alma (Redis destekli)**
 - 🔒 **RSA key çifti yönetimi (Vault entegrasyonu veya runtime üretimi)**
 - 🛡️ **Spring Security ile entegre kimlik ve yetkilendirme yönetimi**
@@ -35,6 +35,18 @@ mekanizmalarını kapsayan bu servis, mikroservis mimarilerine kolayca entegre e
 - 🛃️ **MySQL veritabanı entegrasyonu**
 - ❌ **Soft-delete mekanizması ile silinmeyen veri yönetimi**
 - ✅ **Merkezi hata yönetimi**
+- 📧 **Email tabanlı giriş sistemi**
+- 👤 **Ad-Soyad validasyonu ve normalizasyonu**
+
+## Rol Sistemi
+
+Servis, üyelik bazlı rol sistemi kullanır:
+
+- **ROLE_FREE**: Ücretsiz üyelik
+- **ROLE_PREMIUM**: Premium üyelik
+- **ROLE_GUEST**: Misafir kullanıcı
+- **ROLE_ADMIN**: Yönetici
+- **ROLE_MODERATOR**: Moderatör (kritik endpointlerde readonly yetkili)
 
 ## Gereksinimler
 
@@ -115,8 +127,8 @@ mekanizmalarını kapsayan bu servis, mikroservis mimarilerine kolayca entegre e
 
 ### Temel Endpointler
 
-- **POST** `/api/auth/register` - Yeni kullanıcı kaydı
-- **POST** `/api/auth/login` - Kullanıcı girişi ve JWT token alma
+- **POST** `/api/auth/register` - Yeni kullanıcı kaydı (ad, soyad, email, şifre)
+- **POST** `/api/auth/login` - Kullanıcı girişi ve JWT token alma (email, şifre)
 - **POST** `/api/auth/refresh` - Token yenileme
 - **POST** `/api/auth/logout` - Kullanıcı çıkışı ve token kara listeye alma
 
@@ -138,25 +150,38 @@ mekanizmalarını kapsayan bu servis, mikroservis mimarilerine kolayca entegre e
 
 ### Örnek API İstekleri
 
-#### **1️⃣ Giriş Yap & Token Al**
+#### **1️⃣ Kayıt Ol**
+
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "password": "password123"
+  }'
+```
+
+#### **2️⃣ Giriş Yap & Token Al**
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "user",
+    "email": "john.doe@example.com",
     "password": "password123"
   }'
 ```
 
-#### **2️⃣ Token Kara Listeye Alarak Çıkış Yap**
+#### **3️⃣ Token Kara Listeye Alarak Çıkış Yap**
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/logout \
   -H "Authorization: Bearer <your_jwt_token>"
 ```
 
-#### **3️⃣ JWK Set Bilgilerini Al**
+#### **4️⃣ JWK Set Bilgilerini Al**
 
 ```bash
 curl -X GET http://localhost:8080/.well-known/jwks.json
@@ -187,6 +212,7 @@ Diğer mikroservislerde JWT token'larını doğrulamak için:
 - **Token Kara Liste:** Redis ile token geçersizleştirme
 - **Soft Delete:** Kullanıcı verilerinin güvenli silinmesi
 - **Role-Based Access Control:** Detaylı yetkilendirme sistemi
+- **Ad-Soyad Normalizasyonu:** İsimler otomatik olarak baş harfleri büyük olacak şekilde normalize edilir
 
 ## Katkıda Bulunma
 

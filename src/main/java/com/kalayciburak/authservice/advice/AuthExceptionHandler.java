@@ -144,7 +144,8 @@ public class AuthExceptionHandler extends JPAExceptionHandler {
      * @return Admin silme girişiminin reddedildiğini belirten {@link ResponseEntity}.
      */
     @ExceptionHandler(AdminCannotBeDeletedException.class)
-    public ResponseEntity<ErrorResponse<?>> handleAdminCannotBeDeletedException(AdminCannotBeDeletedException exception) {
+    public ResponseEntity<ErrorResponse<?>> handleAdminCannotBeDeletedException(
+            AdminCannotBeDeletedException exception) {
         var error = new ErrorResponse<>(
                 Types.Exception.ADMIN_CANNOT_BE_DELETED,
                 Codes.Auth.ADMIN_CANNOT_BE_DELETED,
@@ -190,6 +191,67 @@ public class AuthExceptionHandler extends JPAExceptionHandler {
                 Codes.Auth.ACCESS_DENIED,
                 Messages.Auth.ACCESS_DENIED,
                 HttpStatus.FORBIDDEN,
+                exception);
+
+        return buildResponseEntity(error);
+    }
+
+    /**
+     * {@code EmailAlreadyExistsException} istisnasını yakalar.
+     * <p>
+     * Bu istisna, kayıt sırasında email adresi zaten kullanımdaysa fırlatılır.
+     *
+     * @param exception Yakalanacak istisna.
+     * @return Email kullanımda hatasını içeren {@link ResponseEntity}.
+     */
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse<?>> handleEmailAlreadyExistsException(EmailAlreadyExistsException exception) {
+        var error = new ErrorResponse<>(
+                Types.Exception.ENTITY_EXISTS,
+                Codes.Auth.CONFLICT,
+                exception.getMessage(),
+                HttpStatus.CONFLICT,
+                exception);
+
+        return buildResponseEntity(error);
+    }
+
+    /**
+     * {@code EmailNotVerifiedException} istisnasını yakalar.
+     * <p>
+     * Bu istisna, kullanıcı email doğrulaması yapmadan giriş yapmaya çalıştığında fırlatılır.
+     *
+     * @param exception Yakalanacak istisna.
+     * @return Email doğrulanmamış hatasını içeren {@link ResponseEntity}.
+     */
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse<?>> handleEmailNotVerifiedException(EmailNotVerifiedException exception) {
+        var error = new ErrorResponse<>(
+                Types.Exception.EMAIL_NOT_VERIFIED,
+                Codes.Auth.EMAIL_NOT_VERIFIED,
+                Messages.Auth.EMAIL_NOT_VERIFIED,
+                HttpStatus.FORBIDDEN,
+                exception);
+
+        return buildResponseEntity(error);
+    }
+
+    /**
+     * {@code InvalidVerificationTokenException} istisnasını yakalar.
+     * <p>
+     * Bu istisna, geçersiz veya süresi dolmuş doğrulama token'ı kullanıldığında fırlatılır.
+     *
+     * @param exception Yakalanacak istisna.
+     * @return Geçersiz token hatasını içeren {@link ResponseEntity}.
+     */
+    @ExceptionHandler(InvalidVerificationTokenException.class)
+    public ResponseEntity<ErrorResponse<?>> handleInvalidVerificationTokenException(
+            InvalidVerificationTokenException exception) {
+        var error = new ErrorResponse<>(
+                Types.Exception.INVALID_VERIFICATION_TOKEN,
+                Codes.Auth.INVALID_VERIFICATION_TOKEN,
+                Messages.Auth.INVALID_VERIFICATION_TOKEN,
+                HttpStatus.BAD_REQUEST,
                 exception);
 
         return buildResponseEntity(error);

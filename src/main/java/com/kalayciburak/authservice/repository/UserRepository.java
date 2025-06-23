@@ -2,12 +2,13 @@ package com.kalayciburak.authservice.repository;
 
 import com.kalayciburak.authservice.model.entity.User;
 import com.kalayciburak.commonjpa.repository.BaseRepository;
-import java.util.Optional;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends BaseRepository<User, Long> {
-    Optional<User> findByUsername(String username);
+    Optional<User> findByEmail(String email);
 
-    boolean existsByUsername(String username);
+    boolean existsByEmail(String email);
 }

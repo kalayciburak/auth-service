@@ -28,10 +28,10 @@ import org.springframework.security.web.authentication.password.HaveIBeenPwnedRe
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+    private final RsaKeyService rsaKeyService;
     private final JwtAuthenticationFilter jwtFilter;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final JwtAuthenticationEntryPoint authenticationEntryPoint;
-    private final RsaKeyService rsaKeyService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -52,8 +52,7 @@ public class SecurityConfig {
                 // Anonim kullanıcı otomatik olarak devre dışı bırakılıyor
                 .anonymous(AbstractHttpConfigurer::disable);
 
-        // JWT doğrulama filtresini ekle (UsernamePasswordAuthenticationFilter
-        // öncesinde)
+        // JWT doğrulama filtresini ekle (UsernamePasswordAuthenticationFilter öncesinde)
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

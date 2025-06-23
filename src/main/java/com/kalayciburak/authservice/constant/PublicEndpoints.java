@@ -14,6 +14,8 @@ public final class PublicEndpoints {
             "/swagger-ui/**",
             "/api/auth/**",
             "/.well-known/jwks.json",
+            "/api/auth/verify-email",
+            "/api/auth/resend-verification-email"
     };
 
     private PublicEndpoints() {

@@ -13,11 +13,12 @@ import com.kalayciburak.authservice.security.audit.SecurityAuditorProvider;
 import com.kalayciburak.authservice.service.helper.UserHelper;
 import com.kalayciburak.authservice.service.validator.UserValidator;
 import com.kalayciburak.commonpackage.core.response.success.SuccessResponse;
-import java.util.List;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Set;
 
 import static com.kalayciburak.authservice.service.helper.UserHelper.hasAdminRole;
 import static com.kalayciburak.commonpackage.core.constant.Messages.User.*;
@@ -33,6 +34,7 @@ public class UserService {
     private final RoleService roleService;
     private final UserRepository repository;
     private final SecurityAuditorProvider auditorProvider;
+    private final EmailVerificationService verificationService;
 
     /**
      * Tüm kullanıcıları getirir.
@@ -42,22 +44,21 @@ public class UserService {
     @Transactional(readOnly = true)
     public SuccessResponse<List<UserResponse>> getAllUsers() {
         var response = repository.findAll().stream().map(UserResponse::from).toList();
-        if (response.isEmpty()) return createNotFoundResponse(NOT_FOUND);
+        if (response.isEmpty())
+            return createNotFoundResponse(NOT_FOUND);
 
         return createSuccessResponse(response, LISTED);
     }
 
     /**
-     * Kullanıcı adına göre kullanıcıyı getirir.
-     * <p>
-     * Eğer kullanıcı bulunamazsa {@link UserNotFoundException} fırlatır.
+     * Email adresine göre kullanıcıyı getirir.
      *
-     * @param username Kullanıcı adı
+     * @param email Email adresi
      * @return Kullanıcı bilgileri
      */
     @Transactional(readOnly = true)
-    public SuccessResponse<UserResponse> getUserByUsername(String username) {
-        var user = repository.findByUsername(username).orElseThrow(UserNotFoundException::new);
+    public SuccessResponse<UserResponse> getUserByEmail(String email) {
+        var user = repository.findByEmail(email).orElseThrow(UserNotFoundException::new);
         var response = UserResponse.from(user);
 
         return createSuccessResponse(response, FOUND);
@@ -67,36 +68,40 @@ public class UserService {
      * Kullanıcı kaydı oluşturur.
      * <p>
      * <ol>
-     *       <li>Kullanıcı adının eşsiz olup olmadığını kontrol eder.</li>
-     *       <li>Parolanın veri ihlallerine karşı durumunu kontrol eder.</li>
-     *       <li>Varsayılan rolleri kullanıcıya atar.</li>
-     *       <li>Yeni kullanıcıyı kaydeder.</li>
-     *       <li>Kaydedilen kullanıcı bilgilerini döndürür.</li>
+     * <li>Email adresinin eşsiz olup olmadığını kontrol eder.</li>
+     * <li>Parolanın veri ihlallerine karşı durumunu kontrol eder.</li>
+     * <li>Varsayılan rolleri kullanıcıya atar.</li>
+     * <li>Yeni kullanıcıyı kaydeder.</li>
+     * <li>Email doğrulama linki gönderir.</li>
+     * <li>Kaydedilen kullanıcı bilgilerini döndürür.</li>
      * </ol>
      *
      * @param request Kullanıcı bilgileri
      * @return Kaydedilen kullanıcı bilgileri
      */
     public SuccessResponse<UserResponse> registerUser(RegisterRequest request) {
-        validator.validateUniqueUsername(request.username());
+        validator.validateUniqueEmail(request.email());
         validator.validatePasswordDataBreachStatus(request.password());
         var roles = roleService.assignDefaultRoles();
         var user = helper.buildUser(request, roles);
         var newUser = repository.save(user);
-        var response = UserResponse.from(newUser);
 
-        return createSuccessResponse(response, REGISTER_SUCCESS);
+        // Email doğrulama token'ı oluştur ve email gönder
+        verificationService.createVerificationToken(newUser);
+
+        var response = UserResponse.from(newUser);
+        return createSuccessResponse(response, "Kayıt başarılı! Email adresinize doğrulama linki gönderildi.");
     }
 
     /**
      * Kullanıcının rollerini günceller.
      * <p>
      * <ol>
-     *     <li>Kullanıcının mevcut bilgileri veritabanından alınır.</li>
-     *     <li>Seçilen rollerin geçerli olup olmadığı kontrol edilir.</li>
-     *     <li>Eğer roller değişmemişse, işlem yapılmaz.</li>
-     *     <li>Yeni roller kullanıcıya atanır ve veritabanına kaydedilir.</li>
-     *     <li>Güncellenmiş kullanıcı bilgileri döndürülür.</li>
+     * <li>Kullanıcının mevcut bilgileri veritabanından alınır.</li>
+     * <li>Seçilen rollerin geçerli olup olmadığı kontrol edilir.</li>
+     * <li>Eğer roller değişmemişse, işlem yapılmaz.</li>
+     * <li>Yeni roller kullanıcıya atanır ve veritabanına kaydedilir.</li>
+     * <li>Güncellenmiş kullanıcı bilgileri döndürülür.</li>
      * </ol>
      *
      * @param id      Kullanıcı ID'si
@@ -107,7 +112,8 @@ public class UserService {
     public SuccessResponse<UserResponse> updateUserRoles(Long id, Set<Long> roleIds) {
         var user = findUserById(id);
         var newRoles = roleService.findRolesByIds(roleIds);
-        if (user.getRoles().equals(newRoles)) createSuccessResponse(ROLES_NOT_CHANGED);
+        if (user.getRoles().equals(newRoles))
+            createSuccessResponse(ROLES_NOT_CHANGED);
 
         user.setRoles(newRoles);
         var updatedUser = repository.save(user);
@@ -120,9 +126,9 @@ public class UserService {
      * Kullanıcının parolasını günceller.
      * <p>
      * <ol>
-     *     <li>Yeni parolanın veri ihlallerine karşı durumu kontrol edilir.</li>
-     *     <li>Parola güncelleme işlemi gerçekleştirilir.</li>
-     *     <li>Güncellenmiş kullanıcı bilgileri döndürülür.</li>
+     * <li>Yeni parolanın veri ihlallerine karşı durumu kontrol edilir.</li>
+     * <li>Parola güncelleme işlemi gerçekleştirilir.</li>
+     * <li>Güncellenmiş kullanıcı bilgileri döndürülür.</li>
      * </ol>
      *
      * @param id      Kullanıcı ID'si
@@ -143,10 +149,10 @@ public class UserService {
      * Kullanıcının parolasını yeni bir parola ile değiştirir.
      * <p>
      * <ol>
-     *     <li>Eski parola doğruluğu kontrol edilir.</li>
-     *     <li>Yeni parolanın veri ihlallerine karşı durumu kontrol edilir.</li>
-     *     <li>Parola değiştirme işlemi gerçekleştirilir.</li>
-     *     <li>Değiştirilen kullanıcı bilgileri döndürülür.</li>
+     * <li>Eski parola doğruluğu kontrol edilir.</li>
+     * <li>Yeni parolanın veri ihlallerine karşı durumu kontrol edilir.</li>
+     * <li>Parola değiştirme işlemi gerçekleştirilir.</li>
+     * <li>Değiştirilen kullanıcı bilgileri döndürülür.</li>
      * </ol>
      *
      * @param id      Kullanıcı ID'si
@@ -168,10 +174,11 @@ public class UserService {
      * Kullanıcıyı (soft) siler.
      * <p>
      * <ol>
-     *     <li>Silinecek kullanıcıyı veritabanından getirir.</li>
-     *     <li>Kullanıcının ADMIN rolüne sahip olup olmadığını kontrol eder.</li>
-     *     <li>Eğer kullanıcı ADMIN rolüne sahipse, {@link AdminCannotBeDeletedException} fırlatılır.</li>
-     *     <li>Eğer kullanıcı ADMIN değilse, (soft) silme işlemi gerçekleştirilir.</li>
+     * <li>Silinecek kullanıcıyı veritabanından getirir.</li>
+     * <li>Kullanıcının ADMIN rolüne sahip olup olmadığını kontrol eder.</li>
+     * <li>Eğer kullanıcı ADMIN rolüne sahipse,
+     * {@link AdminCannotBeDeletedException} fırlatılır.</li>
+     * <li>Eğer kullanıcı ADMIN değilse, (soft) silme işlemi gerçekleştirilir.</li>
      * </ol>
      *
      * @param id Silinecek kullanıcının ID'si

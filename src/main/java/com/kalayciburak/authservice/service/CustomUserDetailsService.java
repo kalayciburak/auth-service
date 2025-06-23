@@ -2,7 +2,6 @@ package com.kalayciburak.authservice.service;
 
 import com.kalayciburak.authservice.model.entity.User;
 import com.kalayciburak.authservice.repository.UserRepository;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,22 +9,24 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     /**
-     * Veritabanından kullanıcıyı kullanıcı adına göre bulur.
+     * Veritabanından kullanıcıyı email adresine göre bulur.
      *
-     * @param username Kullanıcı adı
+     * @param email Email adresi
      * @return Spring Security için UserDetails nesnesi
      * @throws UsernameNotFoundException Eğer kullanıcı bulunamazsa
      */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var message = String.format("Kullanıcı bulunamadı: %s", username);
-        var user = userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException(message));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        var message = String.format("Kullanıcı bulunamadı: %s", email);
+        var user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException(message));
 
         return buildUserDetails(user);
     }
@@ -38,10 +39,9 @@ public class CustomUserDetailsService implements UserDetailsService {
      */
     private UserDetails buildUserDetails(User user) {
         return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
+                user.getEmail(),
                 user.getPassword(),
-                mapRolesToAuthorities(user)
-        );
+                mapRolesToAuthorities(user));
     }
 
     /**

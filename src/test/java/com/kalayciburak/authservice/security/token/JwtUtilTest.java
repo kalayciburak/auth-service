@@ -1,11 +1,6 @@
 package com.kalayciburak.authservice.security.token;
 
 import com.kalayciburak.authservice.advice.exception.InvalidJwtException;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +13,12 @@ import org.mockito.quality.Strictness;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 
 import static com.kalayciburak.authservice.constant.JwtConstants.ACCESS_TOKEN_TYPE;
 import static com.kalayciburak.authservice.constant.JwtConstants.REFRESH_TOKEN_TYPE;
@@ -35,10 +36,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class JwtUtilTest {
-    private final String username = "testuser";
+    private final String email = "test@test.com";
     private final long jwtExpirationMs = 3600000; // 1 saat
     private final List<GrantedAuthority> authorities = List.of(
-            new SimpleGrantedAuthority("ROLE_USER"),
+            new SimpleGrantedAuthority("ROLE_FREE"),
             new SimpleGrantedAuthority("ROLE_ADMIN"));
 
     @Mock
@@ -70,43 +71,43 @@ class JwtUtilTest {
     }
 
     /**
-     * Access token oluşturma işleminin doğruluğunu test eder. Oluşturulan token'ın boş olmadığını, doğru username
-     * içerdiğini, token tipinin ACCESS_TOKEN_TYPE olduğunu ve yetkilerin doğru şekilde eklendiğini doğrular.
+     * Access token oluşturma işleminin doğruluğunu test eder. Oluşturulan token'ın boş olmadığını, doğru email içerdiğini,
+     * token tipinin ACCESS_TOKEN_TYPE olduğunu ve yetkilerin doğru şekilde eklendiğini doğrular.
      */
     @Test
     @DisplayName("Access token oluşturma testi")
     void generateTokenTest() {
         // Act
-        var token = jwtUtil.generateToken(username, authorities);
+        var token = jwtUtil.generateToken(email, authorities);
 
         // Assert
         assertNotNull(token, "Token null olmamalıdır.");
-        assertEquals(username, jwtUtil.extractUsername(token), "Username token içinden doğru şekilde çıkarılmalıdır.");
+        assertEquals(email, jwtUtil.extractUsername(token), "Email token içinden doğru şekilde çıkarılmalıdır.");
         assertEquals(ACCESS_TOKEN_TYPE, jwtUtil.getTokenType(token), "Token tipi 'access' olmalıdır.");
 
         var extractedAuthorities = jwtUtil.getAuthorities(token);
         assertEquals(2, extractedAuthorities.size(), "Token içinde iki yetki bulunmalıdır.");
 
-        var hasUserRole = extractedAuthorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER"));
+        var hasFreeRole = extractedAuthorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_FREE"));
         var hasAdminRole = extractedAuthorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        assertTrue(hasUserRole, "Token içerisinde ROLE_USER yetkisi bulunmalıdır.");
+        assertTrue(hasFreeRole, "Token içerisinde ROLE_FREE yetkisi bulunmalıdır.");
         assertTrue(hasAdminRole, "Token içerisinde ROLE_ADMIN yetkisi bulunmalıdır.");
     }
 
     /**
-     * Refresh token oluşturma işleminin doğruluğunu test eder. Oluşturulan token'ın boş olmadığını, doğru username
-     * içerdiğini ve token tipinin REFRESH_TOKEN_TYPE olduğunu kontrol eder.
+     * Refresh token oluşturma işleminin doğruluğunu test eder. Oluşturulan token'ın boş olmadığını, doğru email içerdiğini
+     * ve token tipinin REFRESH_TOKEN_TYPE olduğunu kontrol eder.
      */
     @Test
     @DisplayName("Refresh token oluşturma testi")
     void generateRefreshTokenTest() {
         // Act
-        var token = jwtUtil.generateRefreshToken(username);
+        var token = jwtUtil.generateRefreshToken(email);
 
         // Assert
         assertNotNull(token, "Refresh token null olmamalıdır.");
-        assertEquals(username, jwtUtil.extractUsername(token), "Username token içinden doğru şekilde çıkarılmalıdır.");
+        assertEquals(email, jwtUtil.extractUsername(token), "Email token içinden doğru şekilde çıkarılmalıdır.");
         assertEquals(REFRESH_TOKEN_TYPE, jwtUtil.getTokenType(token), "Token tipi 'refresh' olmalıdır.");
     }
 
@@ -117,7 +118,7 @@ class JwtUtilTest {
     @DisplayName("Token doğrulama testi - Geçerli token")
     void validateTokenSuccessTest() {
         // Arrange
-        var token = jwtUtil.generateToken(username, authorities);
+        var token = jwtUtil.generateToken(email, authorities);
 
         // Act & Assert
         assertDoesNotThrow(() -> jwtUtil.validateToken(token), "Geçerli token doğrulama sırasında hata oluşmamalıdır.");
@@ -146,7 +147,7 @@ class JwtUtilTest {
     void validateExpiredTokenTest() {
         // Arrange - 1 milisaniyelik ömür ile token oluşturulur.
         ReflectionTestUtils.setField(jwtUtil, "jwtExpirationInMs", 1L);
-        var token = jwtUtil.generateToken(username, authorities);
+        var token = jwtUtil.generateToken(email, authorities);
 
         // Tokenin süresinin dolması için beklenir.
         try {
@@ -161,19 +162,19 @@ class JwtUtilTest {
     }
 
     /**
-     * Token içerisinden kullanıcı adının doğru şekilde çıkarıldığını test eder.
+     * Token içerisinden email adresinin doğru şekilde çıkarıldığını test eder.
      */
     @Test
-    @DisplayName("Kullanıcı adı çıkarma testi")
+    @DisplayName("Email çıkarma testi")
     void extractUsernameTest() {
         // Arrange
-        var token = jwtUtil.generateToken(username, authorities);
+        var token = jwtUtil.generateToken(email, authorities);
 
         // Act
-        var extractedUsername = jwtUtil.extractUsername(token);
+        var extractedEmail = jwtUtil.extractUsername(token);
 
         // Assert
-        assertEquals(username, extractedUsername, "Token içerisindeki username, orijinal username ile aynı olmalıdır.");
+        assertEquals(email, extractedEmail, "Token içerisindeki email, orijinal email ile aynı olmalıdır.");
     }
 
     /**
@@ -183,7 +184,7 @@ class JwtUtilTest {
     @DisplayName("Token tipini alma testi - Access token")
     void getTokenTypeAccessTest() {
         // Arrange
-        var token = jwtUtil.generateToken(username, authorities);
+        var token = jwtUtil.generateToken(email, authorities);
 
         // Act
         var tokenType = jwtUtil.getTokenType(token);
@@ -199,7 +200,7 @@ class JwtUtilTest {
     @DisplayName("Token tipini alma testi - Refresh token")
     void getTokenTypeRefreshTest() {
         // Arrange
-        var token = jwtUtil.generateRefreshToken(username);
+        var token = jwtUtil.generateRefreshToken(email);
 
         // Act
         var tokenType = jwtUtil.getTokenType(token);
@@ -215,7 +216,7 @@ class JwtUtilTest {
     @DisplayName("Token yetkileri alma testi")
     void getAuthoritiesTest() {
         // Arrange
-        var token = jwtUtil.generateToken(username, authorities);
+        var token = jwtUtil.generateToken(email, authorities);
 
         // Act
         var extractedAuthorities = jwtUtil.getAuthorities(token);
@@ -223,10 +224,10 @@ class JwtUtilTest {
         // Assert
         assertEquals(2, extractedAuthorities.size(), "Token içerisinde iki yetki bulunmalıdır.");
 
-        var hasUserRole = extractedAuthorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER"));
+        var hasFreeRole = extractedAuthorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_FREE"));
         var hasAdminRole = extractedAuthorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        assertTrue(hasUserRole, "Token içerisinde ROLE_USER yetkisi bulunmalıdır.");
+        assertTrue(hasFreeRole, "Token içerisinde ROLE_FREE yetkisi bulunmalıdır.");
         assertTrue(hasAdminRole, "Token içerisinde ROLE_ADMIN yetkisi bulunmalıdır.");
     }
 
@@ -238,7 +239,7 @@ class JwtUtilTest {
     @DisplayName("Token son kullanma tarihi alma testi")
     void getExpirationDateTest() {
         // Arrange
-        var token = jwtUtil.generateToken(username, authorities);
+        var token = jwtUtil.generateToken(email, authorities);
         var now = System.currentTimeMillis();
 
         // Act

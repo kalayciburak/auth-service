@@ -11,7 +11,6 @@ import com.kalayciburak.authservice.repository.UserRepository;
 import com.kalayciburak.authservice.security.audit.SecurityAuditorProvider;
 import com.kalayciburak.authservice.service.helper.UserHelper;
 import com.kalayciburak.authservice.service.validator.UserValidator;
-import java.util.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +18,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,21 +42,29 @@ class UserServiceTest {
     @Mock
     private SecurityAuditorProvider auditorProvider;
 
+    @Mock
+    private EmailVerificationService emailVerificationService;
+
     @InjectMocks
     private UserService userService;
 
     /**
      * Yardımcı metot: Test kullanıcıları oluşturur.
      *
-     * @param id       Kullanıcı ID'si
-     * @param username Kullanıcı adı
-     * @param password Şifre
-     * @param roles    Kullanıcı rolleri
+     * @param id        Kullanıcı ID'si
+     * @param firstName Ad
+     * @param lastName  Soyad
+     * @param email     Email
+     * @param password  Şifre
+     * @param roles     Kullanıcı rolleri
      * @return Oluşturulan User nesnesi
      */
-    private User createUser(Long id, String username, String password, Set<Role> roles) {
+    private User createUser(Long id, String firstName, String lastName, String email, String password,
+                            Set<Role> roles) {
         var user = User.builder()
-                .username(username)
+                .firstName(firstName)
+                .lastName(lastName)
+                .email(email)
                 .password(password)
                 .roles(roles)
                 .build();
@@ -98,8 +107,10 @@ class UserServiceTest {
     void getAllUsersWhenUsersExistTest() {
         // Arrange
         var users = List.of(
-                createUser(1L, "user1", "password1", Set.of(createRole(1L, RoleType.ROLE_USER))),
-                createUser(2L, "user2", "password2", Set.of(createRole(2L, RoleType.ROLE_ADMIN))));
+                createUser(1L, "User", "One", "user1@test.com", "password1",
+                        Set.of(createRole(1L, RoleType.ROLE_FREE))),
+                createUser(2L, "User", "Two", "user2@test.com", "password2",
+                        Set.of(createRole(2L, RoleType.ROLE_ADMIN))));
         when(repository.findAll()).thenReturn(users);
 
         // Act
@@ -145,13 +156,14 @@ class UserServiceTest {
     @DisplayName("Kullanıcı kaydı yapma testi")
     void registerUserTest() {
         // Arrange
-        var request = new RegisterRequest("newuser", "password123");
-        var newUser = createUser(1L, "newuser", "encodedPassword", new HashSet<>());
+        var request = new RegisterRequest("Test", "User", "test@test.com", "password123");
+        var newUser = createUser(1L, "Test", "User", "test@test.com", "encodedPassword", new HashSet<>());
         Set<Role> roles = new HashSet<>();
 
         when(roleService.assignDefaultRoles()).thenReturn(roles);
         when(helper.buildUser(request, roles)).thenReturn(newUser);
         when(repository.save(any(User.class))).thenReturn(newUser);
+        doNothing().when(emailVerificationService).createVerificationToken(any(User.class));
 
         // Act
         var response = userService.registerUser(request);
@@ -159,11 +171,18 @@ class UserServiceTest {
         // Assert
         assertNotNull(response, "Yanıt null olmamalıdır.");
         assertNotNull(response.getData(), "Kayıt verisi null olmamalıdır.");
-        assertEquals("newuser", response.getData().username(), "Kullanıcı adı beklenen değerle eşleşmelidir.");
+        assertEquals("Test", response.getData().firstName(), "Ad beklenen değerle eşleşmelidir.");
+        assertEquals("User", response.getData().lastName(), "Soyad beklenen değerle eşleşmelidir.");
+        assertEquals("test@test.com", response.getData().email(), "Email beklenen değerle eşleşmelidir.");
         assertTrue(response.isSuccess(), "Kayıt işlemi başarılı olmalıdır.");
 
         // Verify
+        verify(validator).validateUniqueEmail(request.email());
+        verify(validator).validatePasswordDataBreachStatus(request.password());
+        verify(roleService).assignDefaultRoles();
+        verify(helper).buildUser(request, roles);
         verify(repository).save(any(User.class));
+        verify(emailVerificationService).createVerificationToken(newUser);
     }
 
     /**
@@ -176,8 +195,8 @@ class UserServiceTest {
         // Arrange
         var userId = 1L;
         var roleIds = Set.of(1L, 2L);
-        var user = createUser(userId, "testuser", "password", new HashSet<>());
-        var newRoles = Set.of(createRole(1L, RoleType.ROLE_USER), createRole(2L, RoleType.ROLE_ADMIN));
+        var user = createUser(userId, "Test", "User", "test@test.com", "password", new HashSet<>());
+        var newRoles = Set.of(createRole(1L, RoleType.ROLE_FREE), createRole(2L, RoleType.ROLE_ADMIN));
 
         when(repository.findById(userId)).thenReturn(Optional.of(user));
         when(roleService.findRolesByIds(roleIds)).thenReturn(newRoles);
@@ -207,7 +226,8 @@ class UserServiceTest {
     void deleteUserSuccessTest() {
         // Arrange
         var userId = 1L;
-        var user = createUser(userId, "testuser", "password", Set.of(createRole(1L, RoleType.ROLE_USER)));
+        var user = createUser(userId, "Test", "User", "test@test.com", "password",
+                Set.of(createRole(1L, RoleType.ROLE_FREE)));
         var currentAuditor = "admin";
 
         when(repository.findById(userId)).thenReturn(Optional.of(user));
@@ -237,7 +257,8 @@ class UserServiceTest {
     void deleteAdminUserTest() {
         // Arrange
         var userId = 1L;
-        var adminUser = createUser(userId, "admin", "password", Set.of(createRole(2L, RoleType.ROLE_ADMIN)));
+        var adminUser = createUser(userId, "Admin", "User", "admin@test.com", "password",
+                Set.of(createRole(2L, RoleType.ROLE_ADMIN)));
 
         when(repository.findById(userId)).thenReturn(Optional.of(adminUser));
 
@@ -289,7 +310,8 @@ class UserServiceTest {
         var oldPassword = "oldPassword";
         var newPassword = "newPassword";
 
-        var user = createUser(userId, "testuser", oldPassword, Set.of(createRole(1L, RoleType.ROLE_USER)));
+        var user = createUser(userId, "Test", "User", "test@test.com", oldPassword,
+                Set.of(createRole(1L, RoleType.ROLE_FREE)));
         var request = new ChangePasswordRequest(oldPassword, newPassword);
 
         when(repository.findById(userId)).thenReturn(Optional.of(user));

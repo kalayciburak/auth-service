@@ -4,10 +4,11 @@ import com.kalayciburak.authservice.model.dto.request.RegisterRequest;
 import com.kalayciburak.authservice.model.entity.Role;
 import com.kalayciburak.authservice.model.entity.User;
 import com.kalayciburak.authservice.model.enums.RoleType;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import java.util.Set;
 
 /**
  * Kullanıcı ile ilgili yardımcı metotları içeren sınıf.
@@ -46,9 +47,26 @@ public class UserHelper {
      */
     public User buildUser(RegisterRequest request, Set<Role> roles) {
         return User.builder()
-                .username(request.username())
+                .firstName(normalizeNameCase(request.firstName()))
+                .lastName(normalizeNameCase(request.lastName()))
+                .email(request.email().toLowerCase())
                 .password(passwordEncoder.encode(request.password()))
+                .emailVerified(false)
                 .roles(roles)
                 .build();
+    }
+
+    /**
+     * Ad ve soyad için baş harfi büyük, diğerleri küçük yapan normalizasyon.
+     *
+     * @param name Normalize edilecek isim
+     * @return Normalize edilmiş isim
+     */
+    private String normalizeNameCase(String name) {
+        if (name == null || name.isBlank()) return name;
+        var trimmed = name.trim();
+
+        return trimmed.substring(0, 1).toUpperCase() +
+                trimmed.substring(1).toLowerCase();
     }
 }

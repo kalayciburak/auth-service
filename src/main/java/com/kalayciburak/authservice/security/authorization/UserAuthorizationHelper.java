@@ -11,19 +11,25 @@ public class UserAuthorizationHelper {
     private final UserService service;
 
     /**
-     * Belirtilen kullanıcı ID'sinin mevcut oturum açmış kullanıcıya ait olup olmadığını kontrol eder.
+     * Belirtilen kullanıcı ID'sinin mevcut oturum açmış kullanıcıya ait olup
+     * olmadığını kontrol eder.
      *
-     * <p>Bu metod, mevcut kullanıcının kimliğini alarak verilen ID ile karşılaştırır.
-     * Eğer ID, oturum açmış kullanıcıya aitse {@code true}, aksi takdirde {@code false} döner.</p>
+     * <p>
+     * Bu metod, mevcut kullanıcının kimliğini alarak verilen ID ile karşılaştırır.
+     * Eğer ID, oturum açmış kullanıcıya aitse {@code true}, aksi takdirde
+     * {@code false} döner.
+     * </p>
      *
      * @param id Kontrol edilecek kullanıcı ID'si
-     * @return Eğer işlem mevcut kullanıcıya aitse {@code true}, değilse {@code false}
-     * @throws NullPointerException Eğer mevcut kullanıcı bulunamazsa veya ID null ise
+     * @return Eğer işlem mevcut kullanıcıya aitse {@code true}, değilse
+     *         {@code false}
+     * @throws NullPointerException Eğer mevcut kullanıcı bulunamazsa veya ID null
+     *                              ise
      */
     public boolean isCurrentUser(Long id) {
         var context = SecurityContextHolder.getContext();
-        var currentUsername = context.getAuthentication().getName();
-        var user = service.getUserByUsername(currentUsername);
+        var currentEmail = context.getAuthentication().getName();
+        var user = service.getUserByEmail(currentEmail);
 
         return user.getData().id().equals(id);
     }

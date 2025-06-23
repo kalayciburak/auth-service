@@ -1,8 +1,8 @@
 package com.kalayciburak.authservice.service.validator;
 
 import com.kalayciburak.authservice.advice.exception.BreachedPasswordException;
+import com.kalayciburak.authservice.advice.exception.EmailAlreadyExistsException;
 import com.kalayciburak.authservice.advice.exception.OldPasswordMismatchException;
-import com.kalayciburak.authservice.advice.exception.UserAlreadyExistsException;
 import com.kalayciburak.authservice.model.dto.request.ChangePasswordRequest;
 import com.kalayciburak.authservice.model.entity.User;
 import com.kalayciburak.authservice.repository.UserRepository;
@@ -22,12 +22,12 @@ public class UserValidator {
     private final CompromisedPasswordChecker passwordChecker;
 
     /**
-     * Kullanıcı adının eşsiz olup olmadığını kontrol eder.
+     * Email adresinin eşsiz olup olmadığını kontrol eder.
      *
-     * @param username Kullanıcı adı
+     * @param email Email adresi
      */
-    public void validateUniqueUsername(String username) {
-        if (repository.existsByUsername(username)) throw new UserAlreadyExistsException(username);
+    public void validateUniqueEmail(String email) {
+        if (repository.existsByEmail(email)) throw new EmailAlreadyExistsException(email);
     }
 
     /**

@@ -3,10 +3,10 @@ package com.kalayciburak.authservice.service;
 import com.kalayciburak.authservice.advice.exception.TokenBlacklistedException;
 import com.kalayciburak.authservice.advice.exception.TokenTypeMismatchException;
 import com.kalayciburak.authservice.model.dto.request.LoginRequest;
+import com.kalayciburak.authservice.model.entity.User;
+import com.kalayciburak.authservice.repository.UserRepository;
 import com.kalayciburak.authservice.security.token.JwtUtil;
 import com.kalayciburak.authservice.security.token.TokenBlacklistService;
-import java.util.Date;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,8 +18,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 import static com.kalayciburak.authservice.constant.JwtConstants.REFRESH_TOKEN_TYPE;
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,11 +35,11 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
-    private final String username = "testuser";
+    private final String email = "test@test.com";
     private final String password = "password";
     private final String accessToken = "access.token.123";
     private final String refreshToken = "refresh.token.456";
-    private final List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+    private final List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_FREE"));
 
     @Mock
     private JwtUtil jwtUtil;
@@ -50,17 +53,27 @@ class AuthServiceTest {
     @Mock
     private CustomUserDetailsService customUserDetailsService;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private AuthService authService;
 
     private UserDetails userDetails;
+    private User user;
 
     /**
      * Test öncesi gerekli ayarlamalar yapılır.
      */
     @BeforeEach
     void setUp() {
-        userDetails = new User(username, password, authorities);
+        userDetails = new org.springframework.security.core.userdetails.User(email, password, authorities);
+        user = User.builder()
+                .firstName("Test")
+                .lastName("User")
+                .email(email)
+                .emailVerified(true)
+                .build();
     }
 
     /**
@@ -71,11 +84,12 @@ class AuthServiceTest {
     @DisplayName("Başarılı giriş testi")
     void loginSuccessTest() {
         // Arrange: Login isteği oluşturulur.
-        var request = new LoginRequest(username, password);
+        var request = new LoginRequest(email, password);
 
-        when(customUserDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
-        when(jwtUtil.generateToken(eq(username), anyCollection())).thenReturn(accessToken);
-        when(jwtUtil.generateRefreshToken(username)).thenReturn(refreshToken);
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(customUserDetailsService.loadUserByUsername(email)).thenReturn(userDetails);
+        when(jwtUtil.generateToken(eq(email), anyCollection())).thenReturn(accessToken);
+        when(jwtUtil.generateRefreshToken(email)).thenReturn(refreshToken);
 
         // Act: Giriş işlemi gerçekleştirilir.
         var response = authService.login(request);
@@ -89,9 +103,9 @@ class AuthServiceTest {
 
         // Verify: İlgili metod çağrıları doğrulanır.
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(customUserDetailsService).loadUserByUsername(username);
-        verify(jwtUtil).generateToken(eq(username), anyCollection());
-        verify(jwtUtil).generateRefreshToken(username);
+        verify(customUserDetailsService).loadUserByUsername(email);
+        verify(jwtUtil).generateToken(eq(email), anyCollection());
+        verify(jwtUtil).generateRefreshToken(email);
     }
 
     /**
@@ -151,12 +165,12 @@ class AuthServiceTest {
         // Arrange: Yeni refresh token üretilmesi senaryosu.
         var newRefreshToken = "new.refresh.token.789";
 
-        when(customUserDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
+        when(customUserDetailsService.loadUserByUsername(email)).thenReturn(userDetails);
         doNothing().when(jwtUtil).validateToken(refreshToken);
         when(jwtUtil.getTokenType(refreshToken)).thenReturn(REFRESH_TOKEN_TYPE);
-        when(jwtUtil.extractUsername(refreshToken)).thenReturn(username);
-        when(jwtUtil.generateToken(eq(username), anyCollection())).thenReturn(accessToken);
-        when(jwtUtil.generateRefreshToken(username)).thenReturn(newRefreshToken);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(email);
+        when(jwtUtil.generateToken(eq(email), anyCollection())).thenReturn(accessToken);
+        when(jwtUtil.generateRefreshToken(email)).thenReturn(newRefreshToken);
 
         // Act: Token yenileme işlemi gerçekleştirilir.
         var response = authService.refresh(refreshToken);
@@ -173,9 +187,9 @@ class AuthServiceTest {
         verify(jwtUtil).validateToken(refreshToken);
         verify(jwtUtil).getTokenType(refreshToken);
         verify(jwtUtil).extractUsername(refreshToken);
-        verify(customUserDetailsService).loadUserByUsername(username);
-        verify(jwtUtil).generateToken(eq(username), anyCollection());
-        verify(jwtUtil).generateRefreshToken(username);
+        verify(customUserDetailsService).loadUserByUsername(email);
+        verify(jwtUtil).generateToken(eq(email), anyCollection());
+        verify(jwtUtil).generateRefreshToken(email);
     }
 
     /**

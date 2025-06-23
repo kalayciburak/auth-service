@@ -1,10 +1,9 @@
 package com.kalayciburak.authservice.model.enums;
 
 public enum RoleType {
-    ROLE_USER,
-    ROLE_GUEST,
-    ROLE_ADMIN,
-    ROLE_MODERATOR,
-    ROLE_DEVELOPER,
-    ROLE_SUPER_ADMIN
+    ROLE_FREE, // Ücretsiz üyelik
+    ROLE_PREMIUM, // Premium üyelik
+    ROLE_GUEST, // Misafir kullanıcı
+    ROLE_ADMIN, // Yönetici
+    ROLE_MODERATOR // Moderatör (readonly admin)
 }

@@ -32,8 +32,25 @@ spring:
         default-context: auth-service
   config:
     import: vault://
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:leesout21@gmail.com}
+    password: ${MAIL_PASSWORD:oihx vfuh pkbe stwn}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 app:
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:3000}
   jwt:
     expiration-ms: ${EXPIRATION_TIME_MS:3600000} # 1 saat
     refresh-expiration-ms: ${REFRESH_EXPIRATION_TIME_MS:86400000} # 1 gün
