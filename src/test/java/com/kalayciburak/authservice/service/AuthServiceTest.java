@@ -36,7 +36,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
     private final String email = "test@test.com";
-    private final String password = "password";
+    private final String password = "TestPass123!";
     private final String accessToken = "access.token.123";
     private final String refreshToken = "refresh.token.456";
     private final List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_FREE"));

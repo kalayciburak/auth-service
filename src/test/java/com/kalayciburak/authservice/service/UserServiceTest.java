@@ -163,7 +163,7 @@ class UserServiceTest {
     @DisplayName("Kullanıcı kaydı yapma testi")
     void registerUserTest() {
         // Arrange
-        var request = new RegisterRequest("Test", "User", "test@test.com", "password123");
+        var request = new RegisterRequest("Test", "User", "test@test.com", "Password123!");
         var newUser = createUser(1L, "Test", "User", "test@test.com", "encodedPassword", new HashSet<>());
         Set<Role> roles = new HashSet<>();
 
@@ -314,8 +314,8 @@ class UserServiceTest {
     void changePasswordSuccessTest() {
         // Arrange
         var userId = 1L;
-        var oldPassword = "oldPassword";
-        var newPassword = "newPassword";
+        var oldPassword = "OldPass123!";
+        var newPassword = "NewPass456@";
 
         var user = createUser(userId, "Test", "User", "test@test.com", oldPassword,
                 Set.of(createRole(1L, RoleType.ROLE_FREE)));

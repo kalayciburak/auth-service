@@ -29,8 +29,8 @@ public record RegisterRequest(
         String email,
 
         @NotBlank(message = "Parola boş bırakılamaz")
-        @Size(min = 6, max = 30, message = "Parola en az 6, en fazla 30 karakter olabilir")
-        @Pattern(regexp = PASSWORD_PATTERN, message = "Parola en az bir harf ve bir rakam içermelidir")
+        @Size(min = 8, max = 50, message = "Parola en az 8, en fazla 50 karakter olabilir")
+        @Pattern(regexp = PASSWORD_PATTERN, message = "Parola en az bir küçük harf, bir büyük harf, bir rakam ve bir özel karakter (!@#$%^&*()_+) içermelidir")
         String password
 ) {
 }
