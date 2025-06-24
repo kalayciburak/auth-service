@@ -5,8 +5,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication(scanBasePackages = Paths.ConfigurationBasePackage)
 @EnableScheduling
+@SpringBootApplication(scanBasePackages = Paths.ConfigurationBasePackage)
 public class AuthServiceApplication {
 
     public static void main(String[] args) {

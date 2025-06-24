@@ -6,11 +6,12 @@ import com.kalayciburak.commonpackage.core.response.common.Response;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,6 +28,25 @@ public class UserController {
     )
     public Response getAllUsers() {
         return service.getAllUsers();
+    }
+
+    @GetMapping("/profile")
+    @Operation(
+            summary = "Kendi profil bilgilerini getir",
+            description = "Giriş yapmış kullanıcı kendi profil bilgilerine erişebilir."
+    )
+    public Response getCurrentUserProfile() {
+        return service.getCurrentUserProfile();
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @userAuthorizationHelper.isCurrentUser(#id)")
+    @Operation(
+            summary = "Kullanıcı bilgilerini getir",
+            description = "ADMIN kullanıcılar herhangi bir kullanıcının bilgilerine erişebilir. Diğer kullanıcılar sadece kendi bilgilerine erişebilir."
+    )
+    public Response getUserById(@PathVariable Long id) {
+        return service.getUserById(id);
     }
 
     @PutMapping("/{id}/change-password")

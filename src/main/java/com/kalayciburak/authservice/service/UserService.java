@@ -14,6 +14,7 @@ import com.kalayciburak.authservice.service.helper.UserHelper;
 import com.kalayciburak.authservice.service.validator.UserValidator;
 import com.kalayciburak.commonpackage.core.response.success.SuccessResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,8 +45,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public SuccessResponse<List<UserResponse>> getAllUsers() {
         var response = repository.findAll().stream().map(UserResponse::from).toList();
-        if (response.isEmpty())
-            return createNotFoundResponse(NOT_FOUND);
+        if (response.isEmpty()) return createNotFoundResponse(NOT_FOUND);
 
         return createSuccessResponse(response, LISTED);
     }
@@ -59,6 +59,43 @@ public class UserService {
     @Transactional(readOnly = true)
     public SuccessResponse<UserResponse> getUserByEmail(String email) {
         var user = repository.findByEmail(email).orElseThrow(UserNotFoundException::new);
+        var response = UserResponse.from(user);
+
+        return createSuccessResponse(response, FOUND);
+    }
+
+    /**
+     * Mevcut oturum açmış kullanıcının profil bilgilerini getirir.
+     * <p>
+     * Bu method Spring Security'nin SecurityContext'inden mevcut kullanıcının email adresini alarak kullanıcı bilgilerini
+     * döndürür. Sadece kendi profil bilgilerine erişmek isteyen kullanıcılar tarafından kullanılır.
+     * </p>
+     *
+     * @return Mevcut kullanıcının profil bilgileri
+     * @throws UserNotFoundException Eğer oturum açmış kullanıcı bulunamazsa
+     */
+    @Transactional(readOnly = true)
+    public SuccessResponse<UserResponse> getCurrentUserProfile() {
+        var context = SecurityContextHolder.getContext();
+        var currentEmail = context.getAuthentication().getName();
+        var user = repository.findByEmail(currentEmail).orElseThrow(UserNotFoundException::new);
+        var response = UserResponse.from(user);
+
+        return createSuccessResponse(response, FOUND);
+    }
+
+    /**
+     * ID'ye göre kullanıcı bilgilerini getirir.
+     * <p>
+     * Bu method admin yetkisine sahip kullanıcılar tarafından herhangi bir kullanıcının bilgilerini almak için kullanılır.
+     * </p>
+     *
+     * @param id Kullanıcı ID'si
+     * @return Kullanıcı bilgileri
+     */
+    @Transactional(readOnly = true)
+    public SuccessResponse<UserResponse> getUserById(Long id) {
+        var user = findUserById(id);
         var response = UserResponse.from(user);
 
         return createSuccessResponse(response, FOUND);
@@ -112,8 +149,7 @@ public class UserService {
     public SuccessResponse<UserResponse> updateUserRoles(Long id, Set<Long> roleIds) {
         var user = findUserById(id);
         var newRoles = roleService.findRolesByIds(roleIds);
-        if (user.getRoles().equals(newRoles))
-            createSuccessResponse(ROLES_NOT_CHANGED);
+        if (user.getRoles().equals(newRoles)) createSuccessResponse(ROLES_NOT_CHANGED);
 
         user.setRoles(newRoles);
         var updatedUser = repository.save(user);

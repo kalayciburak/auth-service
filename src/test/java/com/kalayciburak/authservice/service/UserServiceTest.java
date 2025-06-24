@@ -4,6 +4,7 @@ import com.kalayciburak.authservice.advice.exception.AdminCannotBeDeletedExcepti
 import com.kalayciburak.authservice.advice.exception.UserNotFoundException;
 import com.kalayciburak.authservice.model.dto.request.ChangePasswordRequest;
 import com.kalayciburak.authservice.model.dto.request.RegisterRequest;
+import com.kalayciburak.authservice.model.dto.response.UserResponse;
 import com.kalayciburak.authservice.model.entity.Role;
 import com.kalayciburak.authservice.model.entity.User;
 import com.kalayciburak.authservice.model.enums.RoleType;
@@ -11,6 +12,7 @@ import com.kalayciburak.authservice.repository.UserRepository;
 import com.kalayciburak.authservice.security.audit.SecurityAuditorProvider;
 import com.kalayciburak.authservice.service.helper.UserHelper;
 import com.kalayciburak.authservice.service.validator.UserValidator;
+import com.kalayciburak.commonpackage.core.response.success.SuccessResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,9 +20,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.*;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -332,5 +339,81 @@ class UserServiceTest {
         verify(validator).validatePasswordDataBreachStatus(newPassword);
         verify(helper).encodePassword(newPassword);
         verify(repository).save(any(User.class));
+    }
+
+    @Test
+    @WithMockUser(username = "test@example.com")
+    void getCurrentUserProfile_ShouldReturnCurrentUserProfile_WhenUserExists() {
+        // Arrange
+        var auth = new UsernamePasswordAuthenticationToken("test@example.com", "password", List.of());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        User mockUser = createUser(1L, "Test", "User", "test@example.com", "password", new HashSet<>());
+        when(repository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
+
+        // Act
+        var result = userService.getCurrentUserProfile();
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getData()).isNotNull();
+        assertThat(result.getData().email()).isEqualTo("test@example.com");
+        assertThat(result.getData().firstName()).isEqualTo("Test");
+        assertThat(result.getData().lastName()).isEqualTo("User");
+        verify(repository).findByEmail("test@example.com");
+
+        // Clean up SecurityContext
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @WithMockUser(username = "admin@example.com", roles = {"ADMIN"})
+    void getUserById_ShouldReturnUserProfile_WhenUserExists() {
+        // Given
+        Long userId = 1L;
+        User mockUser = createUser(userId, "Target", "User", "target@example.com", "password", new HashSet<>());
+
+        when(repository.findById(userId)).thenReturn(Optional.of(mockUser));
+
+        // When
+        SuccessResponse<UserResponse> result = userService.getUserById(userId);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getData()).isNotNull();
+        assertThat(result.getData().id()).isEqualTo(userId);
+        assertThat(result.getData().email()).isEqualTo("target@example.com");
+        assertThat(result.getData().firstName()).isEqualTo("Target");
+        verify(repository).findById(userId);
+    }
+
+    @Test
+    @WithMockUser(username = "nonexistent@example.com")
+    void getCurrentUserProfile_ShouldThrowUserNotFoundException_WhenUserNotFound() {
+        // Arrange - SecurityContext manuel set edilir
+        var auth = new UsernamePasswordAuthenticationToken("nonexistent@example.com", "password", List.of());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        when(repository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> userService.getCurrentUserProfile()).isInstanceOf(UserNotFoundException.class);
+
+        verify(repository).findByEmail("nonexistent@example.com");
+
+        // Clean up SecurityContext
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void getUserById_ShouldThrowUserNotFoundException_WhenUserNotFound() {
+        // Given
+        Long userId = 999L;
+        when(repository.findById(userId)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> userService.getUserById(userId))
+                .isInstanceOf(UserNotFoundException.class);
+        verify(repository).findById(userId);
     }
 }

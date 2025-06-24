@@ -23,6 +23,12 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.password.HaveIBeenPwnedRestApiPasswordChecker;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.time.Duration;
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -56,6 +62,32 @@ public class SecurityConfig {
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * CORS yapılandırması.
+     * <p>
+     * Bu yapılandırma, frontend uygulamanın bu auth-service ile iletişim kurabilmesi için gerekli CORS ayarlarını içerir.
+     * </p>
+     *
+     * @return {@link CorsConfigurationSource}
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        var config = new CorsConfiguration();
+        var allowedOrigins = List.of("http://localhost:3000", "http://127.0.0.1:3000");
+        var allowedMethods = List.of("GET", "POST", "PUT", "DELETE", "OPTIONS");
+
+        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedMethods(allowedMethods);
+        config.addAllowedHeader("*");
+        config.setAllowCredentials(true);
+        config.setMaxAge(Duration.ofHours(1).getSeconds());
+
+        var source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
     }
 
     /**
