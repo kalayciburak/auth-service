@@ -24,7 +24,7 @@ mekanizmalarını kapsayan bu servis, mikroservis mimarilerine kolayca entegre e
 - 🌐 **Mikroservis entegrasyonu için `.well-known/jwks.json` desteği**
 - 👥 **Üyelik bazlı rol sistemi (FREE, PREMIUM, GUEST, ADMIN, MODERATOR)**
 - 🔄 **Token yenileme ve kara listeye alma (Redis destekli)**
-- 🔒 **RSA key çifti yönetimi (Vault entegrasyonu veya runtime üretimi)**
+- 🔒 **RSA key çifti yönetimi (Vault entegrasyonu ile otomatik üretim)**
 - 🛡️ **Spring Security ile entegre kimlik ve yetkilendirme yönetimi**
 - 📜 **[Common JPA Package](https://github.com/kalayciburak/common-jpa-package) entegrasyonu**
 - 🛠 **Auditing ile kimlik doğrulama logları tutulur**
@@ -55,8 +55,9 @@ Servis, üyelik bazlı rol sistemi kullanır:
 - **Maven 3.6+**
 - **MySQL 8.0+**
 - **Redis**
-- **Vault**
+- **HashiCorp Vault**
 - **Graylog**
+- **OpenSSL** (RSA key üretimi için)
 - **Common JPA Package**
 
 ## Kurulum
@@ -72,37 +73,43 @@ Servis, üyelik bazlı rol sistemi kullanır:
    **Kök dizinde** `.env` dosyası oluşturun ve aşağıdaki bilgileri ekleyin:
 
    ```properties
-   MYSQL_ROOT_PASSWORD=your_mysql_password
-   DB_USERNAME=root
-   DB_PASSWORD=your_mysql_password
-   SECRET_KEY=your_jwt_secret_key
-   EXPIRATION_TIME_MS=3600000
-   REFRESH_EXPIRATION_TIME_MS=86400000
-   REDIS_HOST=localhost
-   REDIS_PORT=6379
-   REDIS_PASSWORD=your_redis_password
-   VAULT_URI=http://localhost:8200
-   VAULT_TOKEN=my-root-token
-   GRAYLOG_HOST=localhost
-   GRAYLOG_PORT=12201
-   GRAYLOG_PASSWORD_SECRET=your_graylog_password_secret
-   GRAYLOG_ROOT_PASSWORD_SHA2=your_graylog_root_password_sha2
+    # Vault Configuration
+    VAULT_URI=http://localhost:8200
+    VAULT_TOKEN=my-root-token
+    # Database
+    DB_USERNAME=liflow_user
+    DB_PASSWORD=secure_db_pass
+    DB_URL=jdbc:mysql://localhost:3306/liflow_db
+    # Redis
+    REDIS_HOST=localhost
+    REDIS_PORT=6379
+    REDIS_PASSWORD=secure_redis_pass
+    # Mail
+    MAIL_HOST=smtp.gmail.com
+    MAIL_PORT=587
+    MAIL_USERNAME=user@example.com
+    MAIL_PASSWORD=your-app-password
+    # JWT
+    JWT_EXPIRATION_MS=3600000
+    JWT_REFRESH_EXPIRATION_MS=86400000
+    # Graylog
+    GRAYLOG_HOST=localhost
+    GRAYLOG_PORT=12201
+    GRAYLOG_PASSWORD_SECRET=your-graylog-secret
+    GRAYLOG_ROOT_PASSWORD_SHA2=your-graylog-root-password-sha2
+    # Application
+    FRONTEND_URL=http://localhost:3000
    ```
 
-3. **RSA Key Dosyalarını Yapılandırın (İsteğe Bağlı):**
+3. **Vault secret'larını yapılandırın:**
 
    ```bash
-   # Özel bir RSA key çifti kullanmak istiyorsanız
-   mkdir -p src/main/resources/keys
-
-   # Private key oluşturma (PKCS#8 formatında)
-   openssl genpkey -algorithm RSA -out src/main/resources/keys/private.pem -pkeyopt rsa_keygen_bits:2048
-
-   # Public key oluşturma
-   openssl rsa -pubout -in src/main/resources/keys/private.pem -out src/main/resources/keys/public.pem
+   # RSA key çifti otomatik olarak üretilir ve Vault'a yazılır
+   ./scripts/setup-vault-secrets.sh
    ```
 
-   > **Not:** Key dosyaları sağlanmazsa, uygulama otomatik olarak runtime'da RSA key çifti oluşturacaktır.
+   > **Not:** Bu script `.env` dosyasındaki tüm konfigürasyonları Vault'a yazar, RSA key çiftini otomatik üretir ve güvenlik
+   için yerel diskten siler.
 
 4. **Docker kullanarak servisleri başlatın:**
 
@@ -122,6 +129,8 @@ Servis, üyelik bazlı rol sistemi kullanır:
    ```
 
 📌 **Servis çalıştığında:** `http://localhost:8080` adresinde kullanıma hazır olacaktır.
+
+> 💡 **Detaylı script bilgileri için:** [`scripts/README.md`](scripts/README.md) dosyasına bakabilirsiniz.
 
 ## API Kullanımı
 

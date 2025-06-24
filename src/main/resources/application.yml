@@ -5,9 +5,9 @@ spring:
   application:
     name: auth-service
   datasource:
-    url: jdbc:mysql://localhost:3309/auth_db?createDatabaseIfNotExist=true
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    url: ${database.url}
+    username: ${database.username}
+    password: ${database.password}
   jpa:
     open-in-view: false
     hibernate:
@@ -18,9 +18,9 @@ spring:
         format_sql: true
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:123456}
+      host: ${redis.host}
+      port: ${redis.port}
+      password: ${redis.password}
   cloud:
     vault:
       uri: ${VAULT_URI:http://localhost:8200}
@@ -33,10 +33,10 @@ spring:
   config:
     import: vault://
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:leesout21@gmail.com}
-    password: ${MAIL_PASSWORD:oihx vfuh pkbe stwn}
+    host: ${mail.host}
+    port: ${mail.port}
+    username: ${mail.username}
+    password: ${mail.password}
     properties:
       mail:
         smtp:
@@ -50,14 +50,14 @@ spring:
 
 app:
   frontend:
-    url: ${FRONTEND_URL:http://localhost:3000}
+    url: ${application.frontend-url}
   jwt:
-    expiration-ms: ${EXPIRATION_TIME_MS:3600000} # 1 saat
-    refresh-expiration-ms: ${REFRESH_EXPIRATION_TIME_MS:86400000} # 1 gün
+    expiration-ms: ${jwt.expiration-ms}
+    refresh-expiration-ms: ${jwt.refresh-expiration-ms}
     rsa:
-      private-key: ${rsa-private-key:#{null}}
-      public-key: ${rsa-public-key:#{null}}
+      private-key: ${jwt.rsa-private-key:#{null}}
+      public-key: ${jwt.rsa-public-key:#{null}}
 
 graylog:
-  host: ${GRAYLOG_HOST:localhost}
-  port: ${GRAYLOG_PORT:12201}
+  host: ${graylog.host}
+  port: ${graylog.port}
