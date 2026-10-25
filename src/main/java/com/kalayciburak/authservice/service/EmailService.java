@@ -8,6 +8,7 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 @Slf4j
 @Service
@@ -118,7 +119,7 @@ public class EmailService {
                     </div>
                 </body>
                 </html>
-                """.formatted(name, verificationLink, verificationLink);
+                """.formatted(HtmlUtils.htmlEscape(name, "UTF-8"), verificationLink, verificationLink);
     }
 
     private String buildWelcomeEmailContent(String name) {
@@ -152,6 +153,6 @@ public class EmailService {
                     </div>
                 </body>
                 </html>
-                """.formatted(name);
+                """.formatted(HtmlUtils.htmlEscape(name, "UTF-8"));
     }
 }

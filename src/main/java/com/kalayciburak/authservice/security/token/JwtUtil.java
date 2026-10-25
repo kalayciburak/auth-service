@@ -61,6 +61,7 @@ public class JwtUtil {
     public String generateRefreshToken(String username) {
         Map<String, Object> claims = new HashMap<>();
         claims.put(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE);
+        claims.put(Claims.ID, UUID.randomUUID().toString());
 
         return buildToken(username, claims, refreshExpirationDateInMs);
     }

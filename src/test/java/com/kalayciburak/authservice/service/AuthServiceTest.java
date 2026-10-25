@@ -164,13 +164,16 @@ class AuthServiceTest {
     void refreshTokenSuccessTest() {
         // Arrange: Yeni refresh token üretilmesi senaryosu.
         var newRefreshToken = "new.refresh.token.789";
+        var expirationDate = new Date(System.currentTimeMillis() + 3600000);
 
         when(customUserDetailsService.loadUserByUsername(email)).thenReturn(userDetails);
+        when(tokenBlacklistService.isTokenBlacklisted(refreshToken)).thenReturn(false, true);
         doNothing().when(jwtUtil).validateToken(refreshToken);
         when(jwtUtil.getTokenType(refreshToken)).thenReturn(REFRESH_TOKEN_TYPE);
         when(jwtUtil.extractUsername(refreshToken)).thenReturn(email);
         when(jwtUtil.generateToken(eq(email), anyCollection())).thenReturn(accessToken);
         when(jwtUtil.generateRefreshToken(email)).thenReturn(newRefreshToken);
+        when(jwtUtil.getExpirationDate(refreshToken)).thenReturn(expirationDate);
 
         // Act: Token yenileme işlemi gerçekleştirilir.
         var response = authService.refresh(refreshToken);
@@ -190,6 +193,63 @@ class AuthServiceTest {
         verify(customUserDetailsService).loadUserByUsername(email);
         verify(jwtUtil).generateToken(eq(email), anyCollection());
         verify(jwtUtil).generateRefreshToken(email);
+
+        var order = inOrder(jwtUtil, tokenBlacklistService);
+        order.verify(tokenBlacklistService).isTokenBlacklisted(refreshToken);
+        order.verify(jwtUtil).generateToken(eq(email), anyCollection());
+        order.verify(jwtUtil).generateRefreshToken(email);
+        order.verify(jwtUtil).getExpirationDate(refreshToken);
+        order.verify(tokenBlacklistService).addTokenToBlacklist(refreshToken, expirationDate);
+
+        assertThrows(TokenBlacklistedException.class, () -> authService.refresh(refreshToken));
+        verify(jwtUtil, times(1)).generateToken(eq(email), anyCollection());
+        verify(jwtUtil, times(1)).generateRefreshToken(email);
+        verify(tokenBlacklistService, times(1)).addTokenToBlacklist(refreshToken, expirationDate);
+    }
+
+    @Test
+    void refreshWithBlacklistedTokenDoesNotIssueCredentialsTest() {
+        when(jwtUtil.getTokenType(refreshToken)).thenReturn(REFRESH_TOKEN_TYPE);
+        when(tokenBlacklistService.isTokenBlacklisted(refreshToken)).thenReturn(true);
+
+        assertThrows(TokenBlacklistedException.class, () -> authService.refresh(refreshToken));
+
+        verify(jwtUtil).validateToken(refreshToken);
+        verify(jwtUtil).getTokenType(refreshToken);
+        verify(tokenBlacklistService).isTokenBlacklisted(refreshToken);
+        verifyNoMoreInteractions(jwtUtil, tokenBlacklistService);
+        verifyNoInteractions(customUserDetailsService);
+    }
+
+    @Test
+    void refreshDoesNotRevokeOldTokenWhenIssuingCredentialsFailsTest() {
+        var failure = new IllegalStateException("Token üretilemedi");
+        when(jwtUtil.getTokenType(refreshToken)).thenReturn(REFRESH_TOKEN_TYPE);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(email);
+        when(customUserDetailsService.loadUserByUsername(email)).thenReturn(userDetails);
+        when(jwtUtil.generateToken(eq(email), anyCollection())).thenReturn(accessToken);
+        when(jwtUtil.generateRefreshToken(email)).thenThrow(failure);
+
+        assertSame(failure, assertThrows(IllegalStateException.class, () -> authService.refresh(refreshToken)));
+
+        verify(tokenBlacklistService).isTokenBlacklisted(refreshToken);
+        verifyNoMoreInteractions(tokenBlacklistService);
+        verify(jwtUtil, never()).getExpirationDate(anyString());
+    }
+
+    @Test
+    void refreshDoesNotReturnCredentialsWhenRevocationFailsTest() {
+        var expirationDate = new Date(System.currentTimeMillis() + 3600000);
+        var failure = new IllegalStateException("Kara listeye yazılamadı");
+        when(jwtUtil.getTokenType(refreshToken)).thenReturn(REFRESH_TOKEN_TYPE);
+        when(jwtUtil.extractUsername(refreshToken)).thenReturn(email);
+        when(customUserDetailsService.loadUserByUsername(email)).thenReturn(userDetails);
+        when(jwtUtil.generateToken(eq(email), anyCollection())).thenReturn(accessToken);
+        when(jwtUtil.generateRefreshToken(email)).thenReturn("new.refresh.token");
+        when(jwtUtil.getExpirationDate(refreshToken)).thenReturn(expirationDate);
+        doThrow(failure).when(tokenBlacklistService).addTokenToBlacklist(refreshToken, expirationDate);
+
+        assertSame(failure, assertThrows(IllegalStateException.class, () -> authService.refresh(refreshToken)));
     }
 
     /**

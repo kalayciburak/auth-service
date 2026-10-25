@@ -149,7 +149,7 @@ public class UserService {
     public SuccessResponse<UserResponse> updateUserRoles(Long id, Set<Long> roleIds) {
         var user = findUserById(id);
         var newRoles = roleService.findRolesByIds(roleIds);
-        if (user.getRoles().equals(newRoles)) createSuccessResponse(ROLES_NOT_CHANGED);
+        if (user.getRoles().equals(newRoles)) return createSuccessResponse(ROLES_NOT_CHANGED);
 
         user.setRoles(newRoles);
         var updatedUser = repository.save(user);

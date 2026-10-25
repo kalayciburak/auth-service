@@ -1,6 +1,7 @@
 package com.kalayciburak.authservice.security.token;
 
 import com.kalayciburak.authservice.advice.exception.InvalidJwtException;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.List;
+import java.util.UUID;
 
 import static com.kalayciburak.authservice.constant.JwtConstants.ACCESS_TOKEN_TYPE;
 import static com.kalayciburak.authservice.constant.JwtConstants.REFRESH_TOKEN_TYPE;
@@ -109,6 +111,24 @@ class JwtUtilTest {
         assertNotNull(token, "Refresh token null olmamalıdır.");
         assertEquals(email, jwtUtil.extractUsername(token), "Email token içinden doğru şekilde çıkarılmalıdır.");
         assertEquals(REFRESH_TOKEN_TYPE, jwtUtil.getTokenType(token), "Token tipi 'refresh' olmalıdır.");
+    }
+
+    @Test
+    void generateRefreshTokensWithUniqueIdsTest() {
+        var firstToken = jwtUtil.generateRefreshToken(email);
+        var secondToken = jwtUtil.generateRefreshToken(email);
+        var parser = Jwts.parser().verifyWith(rsaKeyService.getPublicKey()).build();
+        var firstId = parser.parseSignedClaims(firstToken).getPayload().getId();
+        var secondId = parser.parseSignedClaims(secondToken).getPayload().getId();
+
+        assertNotNull(firstId);
+        assertNotNull(secondId);
+        assertDoesNotThrow(() -> UUID.fromString(firstId));
+        assertDoesNotThrow(() -> UUID.fromString(secondId));
+        assertNotEquals(firstId, secondId);
+        assertNotEquals(firstToken, secondToken);
+        assertDoesNotThrow(() -> jwtUtil.validateToken(firstToken));
+        assertDoesNotThrow(() -> jwtUtil.validateToken(secondToken));
     }
 
     /**
