@@ -73,8 +73,10 @@ public class AuthService {
      */
     public SuccessResponse<AuthResponse> refresh(String refreshToken) {
         validateRefreshToken(refreshToken);
+        if (tokenBlacklistService.isTokenBlacklisted(refreshToken)) throw new TokenBlacklistedException();
         var email = jwtUtil.extractUsername(refreshToken);
         var response = generateAuthTokens(email);
+        tokenBlacklistService.addTokenToBlacklist(refreshToken, jwtUtil.getExpirationDate(refreshToken));
 
         return createSuccessResponse(response, REFRESH_SUCCESS);
     }

@@ -26,6 +26,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.*;
 
+import static com.kalayciburak.commonpackage.core.constant.Messages.User.ROLES_NOT_CHANGED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
@@ -221,6 +222,27 @@ class UserServiceTest {
         verify(repository).findById(userId);
         verify(roleService).findRolesByIds(roleIds);
         verify(repository).save(any(User.class));
+    }
+
+    @Test
+    void updateUserRolesWhenRolesAreUnchangedDoesNotSaveTest() {
+        var userId = 1L;
+        var roleIds = Set.of(1L);
+        var role = createRole(1L, RoleType.ROLE_FREE);
+        var roles = new HashSet<>(Set.of(role));
+        var user = createUser(userId, "Test", "User", "test@test.com", "password", roles);
+        when(repository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleService.findRolesByIds(roleIds)).thenReturn(Set.of(role));
+
+        var response = userService.updateUserRoles(userId, roleIds);
+
+        assertTrue(response.isSuccess());
+        assertEquals(ROLES_NOT_CHANGED, response.getMessage());
+        assertNull(response.getData());
+        assertSame(roles, user.getRoles());
+        verify(repository).findById(userId);
+        verify(repository, never()).save(any(User.class));
+        verifyNoMoreInteractions(repository);
     }
 
     /**

@@ -30,23 +30,18 @@ public class EmailVerificationService {
      * @param user Token oluşturulacak kullanıcı
      */
     public void createVerificationToken(User user) {
-        // Eğer varsa eski token'ı sil
-        tokenRepository.findByUser(user).ifPresent(tokenRepository::delete);
-
-        // Yeni token oluştur
+        var token = tokenRepository.findByUser(user)
+                .orElseGet(() -> VerificationToken.builder().user(user).build());
         var tokenValue = UUID.randomUUID().toString();
-        var token = VerificationToken.builder()
-                .token(tokenValue)
-                .user(user)
-                .expiryDate(LocalDateTime.now().plusHours(TOKEN_VALIDITY_HOURS))
-                .used(false)
-                .build();
+        token.setToken(tokenValue);
+        token.setExpiryDate(LocalDateTime.now().plusHours(TOKEN_VALIDITY_HOURS));
+        token.setUsed(false);
 
         tokenRepository.save(token);
 
         // Email gönder
         emailService.sendVerificationEmail(user.getEmail(), user.getFirstName(), user.getLastName(), tokenValue);
-        log.info("Doğrulama token'ı oluşturuldu: {} için {}", user.getEmail(), tokenValue);
+        log.info("Doğrulama token'ı oluşturuldu: {}", user.getEmail());
     }
 
     /**
@@ -86,7 +81,7 @@ public class EmailVerificationService {
      *
      * @param email Kullanıcı email adresi
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public void resendVerificationEmail(String email) {
         var user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
         if (user.isEmailVerified()) throw new RuntimeException("Email zaten doğrulanmış.");
@@ -98,9 +93,8 @@ public class EmailVerificationService {
      */
     @Scheduled(cron = "0 0 0 * * *")
     public void cleanupExpiredTokens() {
-        int deletedCount = 0;
         try {
-            tokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
+            long deletedCount = tokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
             log.info("Süresi dolmuş {} adet doğrulama token'ı temizlendi.", deletedCount);
         } catch (Exception e) {
             log.error("Token temizleme işlemi başarısız.", e);

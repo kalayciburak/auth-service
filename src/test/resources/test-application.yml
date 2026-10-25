@@ -1,0 +1,1 @@
+# Isolated slice-test configuration; it intentionally excludes the Vault import from the main application config.

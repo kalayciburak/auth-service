@@ -35,7 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         var token = getBearerTokenFromRequest(request);
-        if (token != null) authenticateRequestWithToken(token, request, response);
+        if (token != null && !authenticateRequestWithToken(token, request, response)) return;
         filterChain.doFilter(request, response);
     }
 
@@ -58,15 +58,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * @param token   JWT token
      * @param request HTTP isteği
      */
-    private void authenticateRequestWithToken(String token, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    private boolean authenticateRequestWithToken(String token, HttpServletRequest request, HttpServletResponse response) throws IOException {
         validateAccessToken(token);
-        if (isTokenBlacklistedAndHandleError(token, response)) return;
+        if (isTokenBlacklistedAndHandleError(token, response)) return false;
 
         var username = jwtUtil.extractUsername(token);
         var userDetails = customUserDetailsService.loadUserByUsername(username);
         var authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);
+        return true;
     }
 
     /**
